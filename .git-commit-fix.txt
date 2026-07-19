@@ -1,0 +1,5 @@
+fix: remove missing @typescript-eslint/no-unused-vars rule
+
+Vercel build failed because @typescript-eslint plugin is not
+installed as devDependency. Remove the rule and rely on
+Next.js built-in ESLint config (next/core-web-vitals).

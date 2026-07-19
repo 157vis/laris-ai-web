@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Sparkles, Github, Twitter, Instagram, Mail, MessageCircle } from "lucide-react";
+import { Sparkles, Github, Twitter, Instagram, Mail, MessageCircle, Phone } from "lucide-react";
+import { WA_DISPLAY, CONTACT_EMAIL, waLink } from "@/lib/whatsapp";
 
 const productLinks = [
   { label: "Fitur", href: "#fitur" },
@@ -12,7 +13,6 @@ const productLinks = [
 const companyLinks = [
   { label: "Tentang Kami", href: "/about" },
   { label: "Blog", href: "/blog" },
-  { label: "Karir", href: "/careers" },
   { label: "Kontak", href: "/contact" },
 ];
 
@@ -23,15 +23,16 @@ const legalLinks = [
 ];
 
 const socialLinks = [
-  { label: "WhatsApp", href: "https://wa.me/628123456789", icon: MessageCircle },
-  { label: "Email", href: "mailto:halo@larisai.id", icon: Mail },
+  { label: `WhatsApp ${WA_DISPLAY}`, href: waLink(), icon: MessageCircle },
+  { label: `Email ${CONTACT_EMAIL}`, href: `mailto:${CONTACT_EMAIL}`, icon: Mail },
   { label: "Instagram", href: "https://instagram.com/laris.ai", icon: Instagram },
   { label: "Twitter", href: "https://twitter.com/laris_ai", icon: Twitter },
-  { label: "GitHub", href: "https://github.com/laris-ai", icon: Github },
+  { label: "GitHub", href: "https://github.com/157vis/laris-ai-web", icon: Github },
 ];
 
 /**
  * Footer — Multi-kolom dengan link produk, perusahaan, legal, dan sosial media.
+ * Kontak utama: WhatsApp 0821-1282-6851, halo@larisai.my.id
  */
 export function Footer() {
   return (
@@ -40,7 +41,7 @@ export function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href="/landing" className="inline-flex items-center gap-2">
+            <Link href="/" className="inline-flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-emerald-500 text-white shadow-sm">
                 <Sparkles className="h-5 w-5" />
               </div>
@@ -51,7 +52,18 @@ export function Footer() {
               kelola stok otomatis, dan lapor KUR tanpa ribet.
             </p>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            {/* Kontak WhatsApp */}
+            <a
+              href={waLink()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300"
+            >
+              <Phone className="h-4 w-4" />
+              Daftar via WhatsApp: {WA_DISPLAY}
+            </a>
+
+            <div className="mt-3 flex flex-wrap gap-2">
               {socialLinks.map((s) => (
                 <a
                   key={s.label}
@@ -121,7 +133,7 @@ export function Footer() {
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-8 text-center text-xs text-muted-foreground sm:flex-row sm:text-left">
           <p>
-            © {new Date().getFullYear()} Laris.AI · Dibuat untuk UMKM Indonesia 🇮🇩
+            © {new Date().getFullYear()} Laris.AI · larisai.my.id · Dibuat untuk UMKM Indonesia 🇮🇩
           </p>
           <p>
             Powered by{" "}

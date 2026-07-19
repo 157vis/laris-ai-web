@@ -1,0 +1,7 @@
+feat(phase 3): pricing update + WhatsApp CTA + larisai.my.id domain
+
+- Update pricing tiers: Pro Rp 299.000, Koperasi/Jaringan Rp 899.000
+- Tambah setup fee Rp 100.000
+- Tambah CTA WhatsApp 082112826851 di landing
+- Update footer & CTA dengan kontak WA
+- Domain larisai.my.id SEO ready

@@ -1,0 +1,4 @@
+fix: add @typescript-eslint plugin and parser as devDependencies
+
+Force Vercel to re-install plugins so @typescript-eslint rule
+definitions are available during build.

@@ -1,0 +1,8 @@
+feat: FASE 2 Landing page lengkap + SEO + PWA icons
+
+- 9 section landing (Hero, Pain Points, Features, How It Works, Pricing, Testimoni, FAQ, CTA, Footer)
+- JSON-LD: Organization, SoftwareApplication, Website, FAQPage
+- SEO: sitemap.xml + robots.txt otomatis, OG image, canonical URL
+- PWA: icons 192/512/180, apple-touch, favicon SVG + PNG
+- Manifest: shortcuts + screenshots
+- Responsive mobile-first, dark mode, Bahasa Indonesia
