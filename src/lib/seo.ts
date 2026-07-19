@@ -1,10 +1,13 @@
 /**
  * SEO utility: JSON-LD structured data untuk Laris.AI.
  * Dipakai di layout.tsx untuk Organization + di landing page untuk Product/FAQ.
+ *
+ * Domain: larisai.my.id
+ * Kontak: WhatsApp 0821-1282-6851, halo@larisai.my.id
  */
 
-const SITE_URL = "https://larisai.id";
-const SITE_NAME = "Laris.AI";
+import { SITE_URL, SITE_NAME, WA_DISPLAY, CONTACT_EMAIL } from "./whatsapp";
+
 const SITE_DESCRIPTION =
   "AI kasir pintar untuk UMKM Indonesia. Catat penjualan via WhatsApp, kelola stok otomatis, dan lapor KUR tanpa ribet.";
 
@@ -13,6 +16,7 @@ export function organizationJsonLd() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: SITE_NAME,
+    alternateName: "Laris AI Indonesia",
     url: SITE_URL,
     logo: `${SITE_URL}/icons/icon-512x512.png`,
     description: SITE_DESCRIPTION,
@@ -33,8 +37,8 @@ export function organizationJsonLd() {
       {
         "@type": "ContactPoint",
         contactType: "customer service",
-        telephone: "+62-812-3456-7890",
-        email: "halo@larisai.id",
+        telephone: `+62-${WA_DISPLAY.replace(/-/g, "")}`,
+        email: CONTACT_EMAIL,
         availableLanguage: ["Indonesian", "English"],
         areaServed: "ID",
       },
@@ -42,7 +46,7 @@ export function organizationJsonLd() {
     sameAs: [
       "https://instagram.com/laris.ai",
       "https://twitter.com/laris_ai",
-      "https://github.com/laris-ai",
+      "https://github.com/157vis/laris-ai-web",
     ],
   };
 }
@@ -77,9 +81,19 @@ export function softwareApplicationJsonLd() {
       {
         "@type": "Offer",
         name: "Pemilik Pro",
-        price: "49000",
+        price: "299000",
         priceCurrency: "IDR",
-        description: "Transaksi unlimited, laporan KUR otomatis, multi-user",
+        description:
+          "Rp 299.000/bulan + setup awal Rp 100.000. Transaksi unlimited, laporan KUR otomatis, multi-user, training include.",
+        priceValidUntil: "2027-12-31",
+      },
+      {
+        "@type": "Offer",
+        name: "Koperasi / Jaringan",
+        price: "899000",
+        priceCurrency: "IDR",
+        description:
+          "Rp 899.000/bulan. Multi-cabang unlimited, RBAC lengkap, dashboard konsolidasi, SLA dedicated.",
         priceValidUntil: "2027-12-31",
       },
     ],
@@ -92,13 +106,12 @@ export function softwareApplicationJsonLd() {
       "PWA install di HP",
       "QRIS & multi-pembayaran",
       "Export Excel/PDF",
+      "Setup awal & training",
     ],
   };
 }
 
-export function faqJsonLd(
-  faqs: Array<{ q: string; a: string }>
-) {
+export function faqJsonLd(faqs: Array<{ q: string; a: string }>) {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -136,4 +149,6 @@ export const seoConstants = {
   SITE_URL,
   SITE_NAME,
   SITE_DESCRIPTION,
+  WA_DISPLAY,
+  CONTACT_EMAIL,
 };

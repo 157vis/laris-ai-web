@@ -7,6 +7,7 @@ import {
   softwareApplicationJsonLd,
   websiteJsonLd,
 } from "@/lib/seo";
+import { SITE_URL } from "@/lib/whatsapp";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,9 +17,9 @@ const inter = Inter({
 });
 
 // Ref: bukuwarung-ai/app.py + bukuwarung-ai/README.md (brand Laris.AI)
-// Metadata SEO konsisten untuk seluruh aplikasi
+// Metadata SEO konsisten untuk seluruh aplikasi (domain: larisai.my.id)
 export const metadata: Metadata = {
-  metadataBase: new URL("https://larisai.id"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Laris.AI — Aset AI untuk UMKM Indonesia",
     template: "%s | Laris.AI",
@@ -31,6 +32,7 @@ export const metadata: Metadata = {
     "pencatatan keuangan UMKM",
     "laporan KUR",
     "Laris.AI",
+    "larisai.my.id",
   ],
   authors: [{ name: "Laris.AI" }],
   creator: "Laris.AI",
@@ -51,7 +53,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "id_ID",
-    url: "https://larisai.id",
+    url: SITE_URL,
     siteName: "Laris.AI",
     title: "Laris.AI — Aset AI untuk UMKM Indonesia",
     description:

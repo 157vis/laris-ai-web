@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/whatsapp";
 
 /**
- * robots.txt otomatis Next.js App Router.
- * File ini akan di-generate jadi /robots.txt oleh Next.js.
+ * robots.txt otomatis Next.js App Router untuk domain larisai.my.id.
  */
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -18,7 +18,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/dashboard", "/settings", "/api", "/auth"],
       },
     ],
-    sitemap: "https://larisai.id/sitemap.xml",
-    host: "https://larisai.id",
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   };
 }

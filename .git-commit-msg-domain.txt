@@ -1,0 +1,6 @@
+feat(domain): migrasi ke larisai.my.id + update SEO/JSON-LD
+
+- Replace larisai.id dengan larisai.my.id di sitemap, robots, layout, seo
+- Update SoftwareApplication JSON-LD offers: Pro 299000, Koperasi 899000
+- Update contact phone WhatsApp 0821-1282-6851 + email halo@larisai.my.id
+- Tambah keyword larisai.my.id untuk SEO discoverability
