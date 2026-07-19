@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Suspense, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, Eye, EyeOff, LogIn } from "lucide-react";
@@ -130,5 +130,17 @@ export function LoginForm() {
         Masuk
       </Button>
     </form>
+  );
+}
+
+/**
+ * Wrapper dengan Suspense untuk handle useSearchParams() di Next.js 14+.
+ * Ref: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+ */
+export function LoginFormWrapper() {
+  return (
+    <Suspense fallback={<div className="h-48 animate-pulse rounded-md bg-muted" />}>
+      <LoginForm />
+    </Suspense>
   );
 }

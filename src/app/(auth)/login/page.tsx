@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LoginForm } from "@/components/forms/login-form";
+import { LoginFormWrapper } from "@/components/forms/login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
@@ -19,7 +19,7 @@ export default function LoginPage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 px-0 sm:px-6">
-        <LoginForm />
+        <LoginFormWrapper />
 
         <div className="relative">
           <Separator />
