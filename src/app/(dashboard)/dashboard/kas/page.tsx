@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Receipt, Search, Calendar, ArrowRight } from "lucide-react";
+import {Plus, Receipt, Calendar, ArrowRight} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+
 import { createClient } from "@/lib/supabase/server";
 import { formatIDR, timeAgo } from "@/lib/format";
 import { deleteTransaction } from "@/lib/dashboard/actions";

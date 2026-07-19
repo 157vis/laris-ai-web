@@ -1,0 +1,8 @@
+fix(build): remove unused imports (Trash2, Search, Input, Badge)
+
+- produk/page.tsx: Trash2 unused → removed
+- kas/page.tsx: Search unused → removed
+- kas/page.tsx: Input unused → removed
+- transaction-form.tsx: Badge unused → removed
+
+Build error dari Vercel strict TS noUnusedLocals.

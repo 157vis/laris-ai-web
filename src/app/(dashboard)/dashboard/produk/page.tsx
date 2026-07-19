@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Package, AlertTriangle, Pencil, Trash2, BarChart3 } from "lucide-react";
+import {Plus, Package, AlertTriangle, Pencil, BarChart3} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
