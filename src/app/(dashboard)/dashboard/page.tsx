@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Sparkles, ArrowRight, TrendingUp, Package, ShoppingCart, Receipt } from "lucide-react";
+import { Sparkles, ArrowRight, TrendingUp, Package, ShoppingCart, Receipt, Plus, Mic, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,20 +14,52 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Welcome banner */}
-      <div className="rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-6 text-white shadow-lg sm:p-8">
+      <div className="rounded-2xl bg-gradient-to-br from-emerald-500 via-brand-500 to-brand-700 p-6 text-white shadow-lg sm:p-8">
         <div className="flex items-start justify-between gap-4">
           <div>
             <Badge className="mb-2 bg-white/20 text-white hover:bg-white/30">
-              FASE 1 Selesai ✅
+              FASE 2 Selesai ✅
             </Badge>
             <h1 className="text-2xl font-bold sm:text-3xl">Selamat Datang di Laris.AI</h1>
             <p className="mt-2 text-sm text-white/90 sm:text-base">
-              Foundation siap. Auth & RBAC aktif. Lanjut FASE 2 untuk landing page publik.
+              Landing page publik live di <strong>larisai.my.id</strong>. Lanjut FASE 3 untuk Dashboard Kasir.
             </p>
           </div>
           <Sparkles className="hidden h-12 w-12 shrink-0 text-white/30 sm:block" />
         </div>
       </div>
+
+      {/* Quick action bar (FASE 3 preview) */}
+      <Card className="border-brand-200 bg-gradient-to-r from-brand-50 to-emerald-50 dark:border-brand-900/40 dark:from-brand-950/30 dark:to-emerald-950/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">⚡ Aksi Cepat</CardTitle>
+          <CardDescription>Catat transaksi dalam 10 detik via WhatsApp</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Button variant="default" size="lg" className="h-auto flex-col gap-1 py-4">
+              <Plus className="h-5 w-5" />
+              <span className="text-xs">Catat Manual</span>
+            </Button>
+            <Button variant="outline" size="lg" className="h-auto flex-col gap-1 py-4">
+              <Mic className="h-5 w-5" />
+              <span className="text-xs">Voice Note</span>
+            </Button>
+            <Button variant="outline" size="lg" className="h-auto flex-col gap-1 py-4" asChild>
+              <Link href="/dashboard/kas">
+                <Receipt className="h-5 w-5" />
+                <span className="text-xs">Buku Kas</span>
+              </Link>
+            </Button>
+            <Button variant="outline" size="lg" className="h-auto flex-col gap-1 py-4" asChild>
+              <Link href="/dashboard/produk">
+                <Package className="h-5 w-5" />
+                <span className="text-xs">Stok</span>
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* KPI cards (placeholder untuk FASE 3) */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -67,29 +99,29 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <RoadmapItem phase={1} status="done" title="Foundation" description="Auth, RBAC, layout, settings" />
-          <RoadmapItem phase={2} status="next" title="Landing Page" description="Hero, pricing, SEO publik" />
-          <RoadmapItem phase={3} status="todo" title="Dashboard Kasir" description="Quick action, KPI, charts" />
-          <RoadmapItem phase={4} status="todo" title="Buku Kas + Produk" description="CRUD + barcode" />
-          <RoadmapItem phase={5} status="todo" title="AI Chat + Print" description="Streaming chat + struk" />
+          <RoadmapItem phase={2} status="done" title="Landing Page" description="Hero, pricing, SEO publik, sitemap, JSON-LD" />
+          <RoadmapItem phase={3} status="next" title="Dashboard Kasir" description="Quick action, KPI live, charts" />
+          <RoadmapItem phase={4} status="todo" title="Buku Kas + Produk" description="CRUD + barcode scanner" />
+          <RoadmapItem phase={5} status="todo" title="AI Chat + Print" description="Streaming chat + struk thermal" />
           <RoadmapItem phase={6} status="todo" title="Laporan + Settings" description="Charts + PDF export" />
-          <RoadmapItem phase={7} status="todo" title="PWA + Production" description="next-pwa + Vercel deploy" />
+          <RoadmapItem phase={7} status="todo" title="PWA + Production" description="Install + push notification" />
         </CardContent>
       </Card>
 
       {/* Quick actions */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="border-brand-200 bg-brand-50/50 dark:bg-brand-950/20">
+        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-brand-700 dark:text-brand-300">
-              <Sparkles className="h-5 w-5" />
-              Mulai FASE 2
+            <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+              <BarChart3 className="h-5 w-5" />
+              Mulai FASE 3
             </CardTitle>
-            <CardDescription>Buat landing page publik dengan SEO & CTA</CardDescription>
+            <CardDescription>Dashboard kasir dengan quick action & KPI live</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild className="w-full">
+            <Button asChild className="w-full" variant="default">
               <Link href="/landing">
-                Preview Landing
+                Preview Landing Live
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -100,17 +132,17 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>⚙️ Setup Supabase</CardTitle>
             <CardDescription>
-              Buat project Supabase baru dan tambahkan ENV vars
+              Initial data toko_rafih sudah di-seed. Tambah produk baru di sini.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" className="w-full">
               <a
-                href="https://supabase.com/dashboard"
+                href="https://supabase.com/dashboard/project/tagyexrsuvogrlhcthcp/editor"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Buka Supabase Dashboard
+                Buka Supabase Editor
                 <ArrowRight className="h-4 w-4" />
               </a>
             </Button>

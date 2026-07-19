@@ -1,0 +1,8 @@
+feat(dashboard): mark FASE 2 done + add quick action bar (FASE 3 preview)
+
+- Update welcome banner: FASE 2 Selesai ✅ + mention larisai.my.id
+- Tambah "Aksi Cepat" card dengan 4 button (Catat Manual, Voice Note, Buku Kas, Stok)
+- Roadmap fase 2 status: done dengan description SEO + sitemap + JSON-LD
+- Roadmap fase 3 status: next (Quick action, KPI live, charts)
+- Update fase 7 description: Install + push notification (lebih akurat)
+- Quick action: link Preview Landing & Supabase Editor
