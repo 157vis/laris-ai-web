@@ -14,7 +14,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { canAccess, defaultRouteForRole } from "@/lib/auth/rbac";
+import { canAccess } from "@/lib/auth/rbac";
 import type { UserRole } from "@/types/auth";
 
 interface NavItem {
