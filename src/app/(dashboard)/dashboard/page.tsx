@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 import {
   Sparkles,
   ArrowRight,
   TrendingUp,
   Package,
-  ShoppingCart,
   Receipt,
   Plus,
   Mic,
@@ -36,7 +34,6 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  // Get current user
   const supabase = await createClient();
   const {
     data: { user },
@@ -55,9 +52,11 @@ export default async function DashboardPage() {
     );
   }
 
-  // Fetch stats
   const stats = await getDashboardStats(user.id);
-  const userName = (user.user_metadata?.full_name as string) || user.email?.split("@")[0] || "Pengguna";
+  const userName =
+    (user.user_metadata?.full_name as string) ||
+    user.email?.split("@")[0] ||
+    "Pengguna";
 
   return (
     <div className="space-y-6">
@@ -90,7 +89,11 @@ export default async function DashboardPage() {
         <CardContent>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Button asChild size="lg" className="h-auto flex-col gap-1 py-4">
-              <a href={waLink("Halo Admin Laris.AI, saya mau catat transaksi")} target="_blank" rel="noopener noreferrer">
+              <a
+                href={waLink("Halo Admin Laris.AI, saya mau catat transaksi")}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Mic className="h-5 w-5" />
                 <span className="text-xs">Catat via WA</span>
               </a>
