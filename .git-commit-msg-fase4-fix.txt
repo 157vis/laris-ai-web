@@ -1,0 +1,12 @@
+fix(build): extract formatIDR/timeAgo to format.ts (universal)
+
+Penyebab error:
+- transaction-form.tsx (use client) import formatIDR dari queries.ts
+- queries.ts import createClient dari server.ts yang import next/headers
+- next/headers ke-bundle ke client → Vercel error
+
+Fix:
+- Tambah src/lib/format.ts (pure utilities, no server imports)
+- Update semua file yang pakai formatIDR/timeAgo → import dari @/lib/format
+- Dashboard page tetap import getDashboardStats dari @/lib/dashboard/queries
+- formatIDR/timeAgo di queries.ts dibiarkan (duplikat) untuk backward compat

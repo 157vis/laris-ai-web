@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
-import { formatIDR } from "@/lib/dashboard/queries";
+import { formatIDR } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Detail Transaksi",

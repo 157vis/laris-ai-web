@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatIDR } from "@/lib/dashboard/queries";
+import { formatIDR } from "@/lib/format";
 
 type Product = {
   id: string;

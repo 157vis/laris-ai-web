@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
-import { formatIDR } from "@/lib/dashboard/queries";
+import { formatIDR } from "@/lib/format";
 
 /**
  * Revenue chart — SVG-based bar chart 7 hari terakhir.

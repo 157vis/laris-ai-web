@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
-import { formatIDR } from "@/lib/dashboard/queries";
+import { formatIDR } from "@/lib/format";
 import { deleteProduct, adjustStock } from "@/lib/dashboard/actions";
 import { DeleteButton } from "@/components/dashboard/delete-button";
 import { StockAdjuster } from "@/components/dashboard/stock-adjuster";

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Receipt, ArrowRight, User } from "lucide-react";
-import { formatIDR, timeAgo } from "@/lib/dashboard/queries";
+import { formatIDR, timeAgo } from "@/lib/format";
 
 type Transaction = {
   id: string;

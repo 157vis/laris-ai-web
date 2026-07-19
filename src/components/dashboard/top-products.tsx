@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, ArrowRight, Package } from "lucide-react";
-import { formatIDR } from "@/lib/dashboard/queries";
+import { formatIDR } from "@/lib/format";
 
 type TopProduct = { name: string; sold: number; revenue: number };
 

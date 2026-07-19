@@ -21,7 +21,8 @@ import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { TopProducts } from "@/components/dashboard/top-products";
 import { createClient } from "@/lib/supabase/server";
-import { getDashboardStats, formatIDR } from "@/lib/dashboard/queries";
+import { getDashboardStats } from "@/lib/dashboard/queries";
+import { formatIDR } from "@/lib/format";
 import { waLink } from "@/lib/whatsapp";
 
 export const metadata: Metadata = {
