@@ -1,0 +1,20 @@
+feat(fase 3): Dashboard Kasir with live KPI + chart + recent tx
+
+Dashboard:
+- Server-side data fetch dari Supabase (force-dynamic, revalidate=0)
+- Welcome banner dengan nama user + summary today
+- 4 KPI cards live (Hari Ini, Stok Menipis, Total Transaksi, Pelanggan Aktif)
+- Low stock alert (kondisional jika ada)
+- Revenue 7 hari bar chart (SVG, no recharts dep)
+- Top 5 produk terlaris bulan ini
+- Recent 10 transaksi dengan link detail
+- Refresh indicator timestamp
+
+Components:
+- src/lib/dashboard/queries.ts (getDashboardStats, formatIDR, timeAgo)
+- src/components/dashboard/kpi-card.tsx (variant styles + trend)
+- src/components/dashboard/revenue-chart.tsx (SVG bar chart)
+- src/components/dashboard/recent-transactions.tsx
+- src/components/dashboard/top-products.tsx
+
+Roadmap updated: Fase 3 ✅ Selesai, Fase 4 ⏭️ Berikutnya
