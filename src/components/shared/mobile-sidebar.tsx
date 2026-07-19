@@ -15,11 +15,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Kasir", href: "/kasir", icon: ShoppingCart },
-  { label: "Buku Kas", href: "/buku-kas", icon: BookOpen },
-  { label: "Produk", href: "/produk", icon: Package },
-  { label: "Laporan", href: "/laporan", icon: BarChart3 },
-  { label: "AI Chat", href: "/ai-chat", icon: MessageSquare },
+  { label: "Kasir", href: "/dashboard/kas/new", icon: ShoppingCart },
+  { label: "Buku Kas", href: "/dashboard/kas", icon: BookOpen },
+  { label: "Produk", href: "/dashboard/produk", icon: Package },
+  { label: "Laporan", href: "/dashboard/laporan", icon: BarChart3 },
+  { label: "AI Chat", href: "/dashboard/ai-chat", icon: MessageSquare },
   { label: "Pengaturan", href: "/settings", icon: Settings },
 ];
 

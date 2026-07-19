@@ -17,9 +17,9 @@ export function BottomNav({ role }: { role: UserRole }) {
   // Pilih 5 menu paling penting untuk mobile
   const items = [
     { label: "Beranda", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Kasir", href: "/kasir", icon: ShoppingCart },
-    { label: "Kas", href: "/buku-kas", icon: BookOpen },
-    { label: "AI", href: "/ai-chat", icon: MessageSquare },
+    { label: "Kasir", href: "/dashboard/kas/new", icon: ShoppingCart },
+    { label: "Kas", href: "/dashboard/kas", icon: BookOpen },
+    { label: "AI", href: "/dashboard/ai-chat", icon: MessageSquare },
     { label: "Setting", href: "/settings", icon: Settings },
   ];
 

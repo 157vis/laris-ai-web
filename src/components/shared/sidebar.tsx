@@ -26,11 +26,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, description: "Ringkasan hari ini" },
-  { label: "Kasir", href: "/kasir", icon: ShoppingCart, description: "Catat penjualan" },
-  { label: "Buku Kas", href: "/buku-kas", icon: BookOpen, description: "Pemasukan & pengeluaran" },
-  { label: "Produk", href: "/produk", icon: Package, description: "Stok barang" },
-  { label: "Laporan", href: "/laporan", icon: BarChart3, description: "Laporan keuangan" },
-  { label: "AI Chat", href: "/ai-chat", icon: MessageSquare, description: "Tanya AI asisten" },
+  { label: "Kasir", href: "/dashboard/kas/new", icon: ShoppingCart, description: "Catat penjualan" },
+  { label: "Buku Kas", href: "/dashboard/kas", icon: BookOpen, description: "Pemasukan & pengeluaran" },
+  { label: "Produk", href: "/dashboard/produk", icon: Package, description: "Stok barang" },
+  { label: "Laporan", href: "/dashboard/laporan", icon: BarChart3, description: "Laporan keuangan" },
+  { label: "AI Chat", href: "/dashboard/ai-chat", icon: MessageSquare, description: "Tanya AI asisten" },
   { label: "Pengaturan", href: "/settings", icon: Settings, description: "Profil & toko" },
 ];
 

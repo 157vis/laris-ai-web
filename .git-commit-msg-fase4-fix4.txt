@@ -1,0 +1,19 @@
+fix(nav): route hrefs + tambah Laporan & AI Chat pages
+
+Root cause 404 di sidebar/bottom-nav:
+- /kasir (tidak ada) → /dashboard/kas/new
+- /buku-kas (tidak ada) → /dashboard/kas
+- /produk (tidak ada) → /dashboard/produk
+- /laporan (tidak ada) → /dashboard/laporan (NEW page)
+- /ai-chat (tidak ada) → /dashboard/ai-chat (NEW page)
+
+Pages baru:
+- /dashboard/laporan: ringkasan bulan ini + breakdown metode bayar
+- /dashboard/ai-chat: chat UI dengan suggested prompts (FASE 5 placeholder)
+
+Files:
+- src/components/shared/sidebar.tsx (route updates)
+- src/components/shared/mobile-sidebar.tsx (route updates)
+- src/components/shared/bottom-nav.tsx (route updates)
+- src/app/(dashboard)/dashboard/laporan/page.tsx (NEW)
+- src/app/(dashboard)/dashboard/ai-chat/page.tsx (NEW)
