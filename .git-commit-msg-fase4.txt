@@ -1,0 +1,31 @@
+feat(fase 4): Buku Kas + Produk CRUD lengkap
+
+Server actions (src/lib/dashboard/actions.ts):
+- createProduct, updateProduct, deleteProduct, adjustStock (with delta)
+- createTransaction (auto-decrement stok), deleteTransaction
+- Zod validation schema untuk semua form input
+- user_id scope enforced di setiap query
+
+Produk pages:
+- /dashboard/produk — list dengan stats (Total, Stok Menipis, Nilai Inventaris)
+- /dashboard/produk/new — form tambah
+- /dashboard/produk/[id]/edit — form edit
+- StockAdjuster inline (+/- dengan delta input)
+- DeleteButton dengan inline confirm
+
+Kas pages:
+- /dashboard/kas — list 100 transaksi + stats (Hari Ini, Bulan Ini, Count)
+- /dashboard/kas/new — form cart (pilih produk → keranjang → auto total)
+- /dashboard/kas/[id] — struk detail (success banner, info customer, items, total)
+
+Components:
+- ProductForm (reusable new/edit)
+- TransactionForm (cart dengan state management)
+- StockAdjuster (optimistic + toast)
+- DeleteButton (inline confirm)
+
+Features:
+- Auto-decrement stok saat transaksi dibuat
+- Payment methods: tunai/qris/transfer/kredit
+- Customer opsional (nama, phone, notes)
+- Real-time validation (stok tidak cukup alert)
