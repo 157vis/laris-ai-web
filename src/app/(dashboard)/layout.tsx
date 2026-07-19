@@ -1,6 +1,14 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/shared/dashboard-shell";
+import type { UserRole } from "@/types/auth";
+
+const VALID_ROLES: readonly UserRole[] = [
+  "admin",
+  "kasir",
+  "pemilik",
+  "anggota_koperasi",
+] as const;
 
 /**
  * Layout untuk route group (dashboard): semua halaman setelah login.
@@ -23,7 +31,10 @@ export default async function DashboardLayout({
   // Ambil profile dari app_metadata (diset saat register)
   const fullName = (user.user_metadata?.full_name as string | undefined) ?? "Pengguna";
   const businessName = (user.user_metadata?.business_name as string | undefined) ?? null;
-  const role = (user.app_metadata?.role as string | undefined) ?? "pemilik";
+  const rawRole = user.app_metadata?.role as string | undefined;
+  const role: UserRole = VALID_ROLES.includes(rawRole as UserRole)
+    ? (rawRole as UserRole)
+    : "pemilik";
 
   return (
     <DashboardShell
@@ -36,8 +47,7 @@ export default async function DashboardLayout({
         businessName,
         createdAt: user.created_at,
       }}
-    >
-      {children}
-    </DashboardShell>
+      children={children}
+    />
   );
 }
