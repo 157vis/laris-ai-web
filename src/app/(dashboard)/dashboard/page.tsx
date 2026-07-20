@@ -12,6 +12,7 @@ import {
   Users,
   Bell,
   RefreshCw,
+  Shield,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,14 @@ export default async function DashboardPage() {
     (user.user_metadata?.full_name as string) ||
     user.email?.split("@")[0] ||
     "Pengguna";
+
+  // Fetch role untuk admin shortcut
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  const userRole = (profile?.role as string) ?? "pemilik";
 
   return (
     <div className="space-y-6">
@@ -220,91 +229,50 @@ export default async function DashboardPage() {
         Data live dari Supabase · Diperbarui {new Date().toLocaleTimeString("id-ID")}
       </p>
 
-      {/* Roadmap */}
-      <Card>
+      {/* Quick action — Lanjut FASE 4 */}
+      <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
         <CardHeader>
-          <CardTitle>🗺️ Roadmap 7 Fase</CardTitle>
-          <CardDescription>
-            Progress migrasi Streamlit → Next.js PWA. Klik untuk lihat detail fase.
-          </CardDescription>
+          <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+            <Sparkles className="h-5 w-5" />
+            Lanjut FASE 4
+          </CardTitle>
+          <CardDescription>CRUD buku kas & produk + barcode scanner</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <RoadmapItem phase={1} status="done" title="Foundation" description="Auth, RBAC, layout, settings" />
-          <RoadmapItem phase={2} status="done" title="Landing Page" description="Hero, pricing, SEO publik, sitemap, JSON-LD" />
-          <RoadmapItem phase={3} status="done" title="Dashboard Kasir" description="KPI live, chart 7 hari, top produk, recent tx ✅" />
-          <RoadmapItem phase={4} status="next" title="Buku Kas + Produk" description="CRUD + barcode scanner" />
-          <RoadmapItem phase={5} status="todo" title="AI Chat + Print" description="Streaming chat + struk thermal" />
-          <RoadmapItem phase={6} status="todo" title="Laporan + Settings" description="Charts + PDF export" />
-          <RoadmapItem phase={7} status="todo" title="PWA + Production" description="Install + push notification" />
+        <CardContent>
+          <Button asChild className="w-full" variant="default">
+            <Link href="/dashboard/kas">
+              Mulai FASE 4
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Quick actions */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+      {/* Link to admin console (kalau user admin) */}
+      {userRole === "admin" && (
+        <Card className="border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950/30 dark:to-slate-900/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
-              <Sparkles className="h-5 w-5" />
-              Lanjut FASE 4
+            <CardTitle className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+              <Shield className="h-5 w-5" />
+              Super Admin Console
             </CardTitle>
-            <CardDescription>CRUD buku kas & produk + barcode scanner</CardDescription>
+            <CardDescription>
+              Akses khusus admin: lihat semua user, manage database, audit log
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild className="w-full" variant="default">
-              <Link href="/dashboard/kas">
-                Mulai FASE 4
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/dashboard/admin">
+                Buka Admin Console
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>⚙️ Setup Supabase</CardTitle>
-            <CardDescription>
-              Initial data toko_rafih sudah di-seed. Tambah produk baru di sini.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline" className="w-full">
-              <a
-                href="https://supabase.com/dashboard/project/tagyexrsuvogrlhcthcp/editor"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Buka Supabase Editor
-                <ArrowRight className="h-4 w-4" />
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   );
 }
-
-function RoadmapItem({
-  phase,
-  status,
-  title,
-  description,
-}: {
-  phase: number;
-  status: "done" | "next" | "todo";
-  title: string;
-  description: string;
-}) {
-  const styles = {
-    done: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    next: "bg-amber-100 text-amber-700 border-amber-200",
-    todo: "bg-muted text-muted-foreground border-border",
-  };
-  const labels = {
-    done: "✅ Selesai",
-    next: "⏭️ Berikutnya",
-    todo: "📋 Belum",
-  };
   return (
     <div className="flex items-start gap-3 rounded-lg border p-3">
       <div

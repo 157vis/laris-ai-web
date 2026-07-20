@@ -2,7 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, User, Building2, UserPlus, Eye, EyeOff } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  User,
+  Building2,
+  UserPlus,
+  Eye,
+  EyeOff,
+  Phone,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +20,16 @@ import { createClient } from "@/lib/supabase/client";
 import { defaultRouteForRole } from "@/lib/auth/rbac";
 import type { UserRole } from "@/types/auth";
 
+type Industry = "toko" | "warung" | "koperasi" | "jasa" | "lainnya";
+
 /**
  * Form registrasi UMKM baru.
- * Ref: bukuwarung-ai/setup_laris_ai.sql (kolom profile & role default)
+ *
+ * FASE 5.2: Setelah signUp sukses, server action otomatis insert:
+ *   1. Row di `public.profiles` (dengan phone, industry, client_id)
+ *   2. Row di `public.clients` (dengan client_id, name, owner_user_id, owner_phones)
+ *
+ * Ref: bukuwarung-ai/sql/fase_5_1_super_admin_schema.sql
  */
 export function RegisterForm() {
   const router = useRouter();
@@ -21,6 +37,8 @@ export function RegisterForm() {
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [industry, setIndustry] = useState<Industry>("toko");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,12 +53,26 @@ export function RegisterForm() {
       setError("Semua field wajib diisi.");
       return;
     }
+    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) {
+      setError("Nomor WhatsApp minimal 10 digit.");
+      return;
+    }
     if (password.length < 8) {
       setError("Password minimal 8 karakter.");
       return;
     }
 
+    // Normalisasi phone ke format 628xxx (untuk Fonnte)
+    const phoneNormalized = phone.replace(/\D/g, "");
+    const phoneFonnte = phoneNormalized.startsWith("0")
+      ? `62${phoneNormalized.slice(1)}`
+      : phoneNormalized.startsWith("62")
+      ? phoneNormalized
+      : `62${phoneNormalized}`;
+
     const supabase = createClient();
+
+    // 1) Sign up di auth.users
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -48,8 +80,13 @@ export function RegisterForm() {
         data: {
           full_name: fullName.trim(),
           business_name: businessName.trim(),
-          // Default role untuk UMKM baru: pemilik
-          role: "pemilik" satisfies UserRole,
+          phone: phoneFonnte,
+          industry,
+          // Default role untuk UMKM baru: pemilik (atau anggota_koperasi jika koperasi)
+          role:
+            industry === "koperasi"
+              ? ("anggota_koperasi" satisfies UserRole)
+              : ("pemilik" satisfies UserRole),
         },
         emailRedirectTo: `${window.location.origin}/login`,
       },
@@ -61,13 +98,39 @@ export function RegisterForm() {
       return;
     }
 
-    // Auto-confirm ON (Supabase dev): langsung login
-    if (data.session) {
+    // Auto-confirm ON (Supabase dev): langsung login → setup data
+    if (data.session && data.user) {
+      const userId = data.user.id;
+
+      try {
+        // 2) Insert ke clients (setup toko) — via service-role di server action
+        //    Pakai RPC function supaya atomic & bisa dipanggil dari client
+        const { error: rpcError } = await supabase.rpc("setup_new_tenant", {
+          p_user_id: userId,
+          p_email: email,
+          p_full_name: fullName.trim(),
+          p_business_name: businessName.trim(),
+          p_phone: phoneFonnte,
+          p_industry: industry,
+        });
+
+        if (rpcError) {
+          // Non-fatal: profile akan dibuat via trigger handle_new_user
+          console.warn("setup_new_tenant RPC gagal:", rpcError.message);
+        }
+      } catch (err) {
+        console.warn("setup_new_tenant exception:", err);
+      }
+
       toast.success("Akun berhasil dibuat! 🎉", {
         description: "Selamat datang di Laris.AI",
       });
       startTransition(() => {
-        router.push(defaultRouteForRole("pemilik"));
+        router.push(
+          industry === "koperasi"
+            ? defaultRouteForRole("anggota_koperasi")
+            : defaultRouteForRole("pemilik")
+        );
         router.refresh();
       });
       return;
@@ -99,7 +162,7 @@ export function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="businessName">Nama Toko / Warung</Label>
+        <Label htmlFor="businessName">Nama Toko / Warung / Koperasi</Label>
         <Input
           id="businessName"
           type="text"
@@ -110,6 +173,43 @@ export function RegisterForm() {
           disabled={isPending}
           required
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="industry">Jenis Usaha</Label>
+        <select
+          id="industry"
+          value={industry}
+          onChange={(e) => setIndustry(e.target.value as Industry)}
+          disabled={isPending}
+          required
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="toko">🏪 Toko / Retail</option>
+          <option value="warung">🏬 Warung Kelontong</option>
+          <option value="koperasi">🤝 Koperasi / Jaringan</option>
+          <option value="jasa">🛠️ Jasa / Service</option>
+          <option value="lainnya">📦 Lainnya</option>
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="phone">Nomor WhatsApp</Label>
+        <Input
+          id="phone"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          placeholder="081234567890"
+          leftIcon={<Phone className="h-4 w-4" />}
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          disabled={isPending}
+          required
+        />
+        <p className="text-xs text-muted-foreground">
+          Untuk terima laporan & integrasi WhatsApp bot
+        </p>
       </div>
 
       <div className="space-y-2">

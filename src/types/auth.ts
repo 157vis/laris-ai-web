@@ -21,6 +21,7 @@ export interface RouteAccess {
 // Ref: bukuwarung-ai/README.md (Agent AI role mapping)
 export const ROUTE_ACCESS: RouteAccess[] = [
   { path: "/dashboard", allowedRoles: ["admin", "pemilik"] },
+  { path: "/dashboard/admin", allowedRoles: ["admin"] },
   { path: "/kasir", allowedRoles: ["admin", "kasir", "pemilik"] },
   { path: "/buku-kas", allowedRoles: ["admin", "pemilik", "anggota_koperasi"] },
   { path: "/produk", allowedRoles: ["admin", "pemilik"] },
