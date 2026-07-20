@@ -29,7 +29,7 @@ export type DashboardStats = {
     id: string;
     note: string | null;
     category: string | null;
-    type: string;
+    type: "Pemasukan" | "Pengeluaran";
     amount: number;
     date: string;
   }>;
