@@ -140,7 +140,6 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
   try {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const todayStr = todayStart.toISOString().split("T")[0]; // YYYY-MM-DD
     const monthAgo = new Date();
     monthAgo.setDate(monthAgo.getDate() - 30);
     const sevenDaysAgo = new Date();

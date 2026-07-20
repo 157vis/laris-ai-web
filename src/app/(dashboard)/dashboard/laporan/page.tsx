@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, ArrowRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, Calendar, ArrowRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
