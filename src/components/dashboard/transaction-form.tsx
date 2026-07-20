@@ -16,7 +16,6 @@ type Product = {
   name: string;
   price: number;
   stock: number;
-  unit: string;
 };
 
 type Item = {
