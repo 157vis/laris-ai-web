@@ -273,22 +273,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-  return (
-    <div className="flex items-start gap-3 rounded-lg border p-3">
-      <div
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-sm font-bold ${styles[status]}`}
-      >
-        {phase}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className="font-semibold">{title}</p>
-          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${styles[status]}`}>
-            {labels[status]}
-          </span>
-        </div>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  );
-}
