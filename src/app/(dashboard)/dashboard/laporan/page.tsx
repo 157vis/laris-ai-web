@@ -53,7 +53,6 @@ export default async function LaporanPage() {
     .filter((t) => t.type === "Pengeluaran")
     .reduce((s, t) => s + Number(t.amount ?? 0), 0);
   const monthNet = monthIn - monthOut;
-  const txCount = monthList.length;
   const avgTx = monthList.filter((t) => t.type === "Pemasukan").length > 0
     ? monthIn / monthList.filter((t) => t.type === "Pemasukan").length
     : 0;

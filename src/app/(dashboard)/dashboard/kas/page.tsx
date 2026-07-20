@@ -120,6 +120,15 @@ export default async function KasPage() {
         <Card>
           <CardContent className="flex items-center justify-between p-4">
             <div>
+              <p className="text-xs text-muted-foreground">Pengeluaran Bulan Ini</p>
+              <p className="text-xl font-bold text-rose-600">{formatIDR(monthExp)}</p>
+            </div>
+            <Calendar className="h-8 w-8 text-rose-500" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center justify-between p-4">
+            <div>
               <p className="text-xs text-muted-foreground">Total Transaksi Bulan Ini</p>
               <p className="text-xl font-bold">{monthCount}</p>
             </div>
