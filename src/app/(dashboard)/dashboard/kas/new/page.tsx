@@ -18,7 +18,7 @@ export default async function NewKasPage() {
 
   const { data: products } = await supabase
     .from("products")
-    .select("id, name, price, stock, unit")
+    .select("id, name, price, stock")
     .eq("user_id", user.id)
     .order("name", { ascending: true });
 

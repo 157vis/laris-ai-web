@@ -13,22 +13,20 @@ type ProductFormProps = {
   initial?: {
     id?: string;
     name?: string;
-    sku?: string | null;
-    barcode?: string | null;
     price?: number;
-    cost?: number | null;
     stock?: number;
-    min_stock?: number;
-    unit?: string;
     category?: string | null;
     description?: string | null;
+    image_url?: string | null;
   };
   action: (formData: FormData) => Promise<void>;
 };
 
 /**
  * Form tambah/edit produk.
- * Dipakai di /dashboard/produk/new & /dashboard/produk/[id]/edit.
+ * ADAPTASI: Skema Supabase 'products' hanya punya:
+ *   id, user_id, name, price, stock, category, description, image_url, is_active, created_at
+ * Field cost/min_stock/sku/barcode/unit TIDAK ADA → tidak dipakai di form.
  */
 export function ProductForm({ initial, action }: ProductFormProps) {
   const [isPending, startTransition] = useTransition();
@@ -75,42 +73,35 @@ export function ProductForm({ initial, action }: ProductFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sku">SKU</Label>
-              <Input
-                id="sku"
-                name="sku"
-                placeholder="Kopi-001"
-                defaultValue={initial?.sku ?? ""}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="barcode">Barcode</Label>
-              <Input
-                id="barcode"
-                name="barcode"
-                placeholder="8991234567890"
-                defaultValue={initial?.barcode ?? ""}
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="category">Kategori</Label>
               <Input
                 id="category"
                 name="category"
-                placeholder="Minuman"
+                placeholder="Minuman, Sembako, dll"
                 defaultValue={initial?.category ?? ""}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="unit">Satuan</Label>
+              <Label htmlFor="image_url">URL Gambar</Label>
               <Input
-                id="unit"
-                name="unit"
-                placeholder="pcs / pack / kg"
-                defaultValue={initial?.unit ?? "pcs"}
+                id="image_url"
+                name="image_url"
+                type="url"
+                placeholder="https://..."
+                defaultValue={initial?.image_url ?? ""}
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="description">Deskripsi</Label>
+              <textarea
+                id="description"
+                name="description"
+                rows={3}
+                placeholder="Deskripsi produk (opsional)"
+                defaultValue={initial?.description ?? ""}
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
           </div>
@@ -120,7 +111,7 @@ export function ProductForm({ initial, action }: ProductFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>Harga & Stok</CardTitle>
-          <CardDescription>Atur harga jual, modal, dan stok</CardDescription>
+          <CardDescription>Atur harga jual dan stok</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -139,19 +130,6 @@ export function ProductForm({ initial, action }: ProductFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cost">Harga Modal</Label>
-              <Input
-                id="cost"
-                name="cost"
-                type="number"
-                min={0}
-                step={100}
-                placeholder="3500"
-                defaultValue={initial?.cost ?? 0}
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="stock">Stok Awal *</Label>
               <Input
                 id="stock"
@@ -163,57 +141,28 @@ export function ProductForm({ initial, action }: ProductFormProps) {
                 placeholder="50"
                 defaultValue={initial?.stock ?? 0}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="min_stock">Stok Minimum</Label>
-              <Input
-                id="min_stock"
-                name="min_stock"
-                type="number"
-                min={0}
-                step={1}
-                placeholder="5"
-                defaultValue={initial?.min_stock ?? 5}
-              />
               <p className="text-xs text-muted-foreground">
-                Alert kalau stok di bawah nilai ini
+                ⚠️ Produk dengan stok &lt; 5 akan ditandai "Stok Menipis"
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Catatan (Opsional)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <textarea
-            id="description"
-            name="description"
-            rows={3}
-            placeholder="Tambahkan catatan tentang produk ini..."
-            defaultValue={initial?.description ?? ""}
-            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          />
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end gap-2">
-        <Button asChild variant="outline">
+      <div className="flex justify-end gap-3">
+        <Button asChild variant="outline" type="button">
           <Link href="/dashboard/produk">Batal</Link>
         </Button>
-        <Button type="submit" disabled={isPending} size="lg">
+        <Button type="submit" disabled={isPending}>
           {isPending ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Menyimpan...
             </>
           ) : (
             <>
-              <Save className="h-4 w-4" />
-              {initial?.id ? "Update Produk" : "Simpan Produk"}
+              <Save className="mr-2 h-4 w-4" />
+              Simpan Produk
             </>
           )}
         </Button>

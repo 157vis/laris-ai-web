@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {Plus, Receipt, Calendar, ArrowRight} from "lucide-react";
+import {Plus, Receipt, Calendar, ArrowRight, ArrowUpRight, ArrowDownRight} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,28 +12,26 @@ import { DeleteButton } from "@/components/dashboard/delete-button";
 
 export const metadata: Metadata = {
   title: "Buku Kas",
-  description: "Daftar transaksi penjualan warung Anda.",
+  description: "Daftar transaksi penjualan & pengeluaran warung Anda.",
 };
 
 export const dynamic = "force-dynamic";
 
 type Tx = {
   id: string;
-  customer_name: string | null;
-  customer_phone: string | null;
-  total: number;
-  payment_method: string | null;
-  notes: string | null;
-  created_at: string;
-  transaction_items: { id: string }[];
+  date: string; // 'YYYY-MM-DD HH:MM'
+  type: "Pemasukan" | "Pengeluaran";
+  amount: number;
+  category: string | null;
+  note: string | null;
+  receipt_no: string | null;
+  running_balance: number | null;
+  is_prive: boolean;
 };
 
-const PAYMENT_LABEL: Record<string, string> = {
-  tunai: "💵 Tunai",
-  qris: "📱 QRIS",
-  transfer: "🏦 Transfer",
-  kredit: "📝 Kredit",
-};
+function parseTxDate(dateStr: string): Date {
+  return new Date(dateStr.replace(" ", "T"));
+}
 
 export default async function KasPage() {
   const supabase = await createClient();
@@ -44,9 +42,9 @@ export default async function KasPage() {
 
   const { data: transactions } = await supabase
     .from("transactions")
-    .select("id, customer_name, customer_phone, total, payment_method, notes, created_at, transaction_items(id)")
+    .select("id, date, type, amount, category, note, receipt_no, running_balance, is_prive")
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(100);
 
   const list = (transactions ?? []) as Tx[];
@@ -57,20 +55,30 @@ export default async function KasPage() {
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
 
-  const todayRev = list
-    .filter((t) => new Date(t.created_at) >= today)
-    .reduce((s, t) => s + (t.total ?? 0), 0);
-  const monthRev = list
-    .filter((t) => new Date(t.created_at) >= monthStart)
-    .reduce((s, t) => s + (t.total ?? 0), 0);
-  const monthCount = list.filter((t) => new Date(t.created_at) >= monthStart).length;
+  // Hitung statistik (filter di JS karena date TEXT)
+  const todayTx = list.filter((t) => parseTxDate(t.date) >= today);
+  const monthTx = list.filter((t) => parseTxDate(t.date) >= monthStart);
+
+  const todayRev = todayTx
+    .filter((t) => t.type === "Pemasukan")
+    .reduce((s, t) => s + (t.amount ?? 0), 0);
+  const todayExp = todayTx
+    .filter((t) => t.type === "Pengeluaran")
+    .reduce((s, t) => s + (t.amount ?? 0), 0);
+  const monthRev = monthTx
+    .filter((t) => t.type === "Pemasukan")
+    .reduce((s, t) => s + (t.amount ?? 0), 0);
+  const monthExp = monthTx
+    .filter((t) => t.type === "Pengeluaran")
+    .reduce((s, t) => s + (t.amount ?? 0), 0);
+  const monthCount = monthTx.length;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">💰 Buku Kas</h1>
-          <p className="text-sm text-muted-foreground">Catat dan kelola transaksi penjualan Anda</p>
+          <p className="text-sm text-muted-foreground">Catat dan kelola transaksi penjualan & pengeluaran</p>
         </div>
         <Button asChild size="lg">
           <Link href="/dashboard/kas/new">
@@ -81,21 +89,30 @@ export default async function KasPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="flex items-center justify-between p-4">
             <div>
-              <p className="text-xs text-muted-foreground">Hari Ini</p>
-              <p className="text-xl font-bold">{formatIDR(todayRev)}</p>
+              <p className="text-xs text-muted-foreground">Pemasukan Hari Ini</p>
+              <p className="text-xl font-bold text-emerald-600">{formatIDR(todayRev)}</p>
             </div>
-            <Receipt className="h-8 w-8 text-brand-500" />
+            <ArrowUpRight className="h-8 w-8 text-emerald-500" />
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center justify-between p-4">
             <div>
-              <p className="text-xs text-muted-foreground">Bulan Ini</p>
-              <p className="text-xl font-bold">{formatIDR(monthRev)}</p>
+              <p className="text-xs text-muted-foreground">Pengeluaran Hari Ini</p>
+              <p className="text-xl font-bold text-rose-600">{formatIDR(todayExp)}</p>
+            </div>
+            <ArrowDownRight className="h-8 w-8 text-rose-500" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center justify-between p-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Pemasukan Bulan Ini</p>
+              <p className="text-xl font-bold text-emerald-600">{formatIDR(monthRev)}</p>
             </div>
             <Calendar className="h-8 w-8 text-emerald-500" />
           </CardContent>
@@ -103,58 +120,96 @@ export default async function KasPage() {
         <Card>
           <CardContent className="flex items-center justify-between p-4">
             <div>
-              <p className="text-xs text-muted-foreground">Jumlah Transaksi</p>
+              <p className="text-xs text-muted-foreground">Total Transaksi Bulan Ini</p>
               <p className="text-xl font-bold">{monthCount}</p>
-              <p className="text-xs text-muted-foreground">bulan ini</p>
             </div>
-            <ArrowRight className="h-8 w-8 text-sky-500" />
+            <Receipt className="h-8 w-8 text-brand-500" />
           </CardContent>
         </Card>
       </div>
 
-      {/* List */}
+      {/* Transaction list */}
       <Card>
         <CardHeader>
-          <CardTitle>Transaksi</CardTitle>
-          <CardDescription>100 transaksi terakhir</CardDescription>
+          <CardTitle>Daftar Transaksi</CardTitle>
+          <CardDescription>
+            100 transaksi terakhir. Klik untuk detail, atau gunakan tombol hapus.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {list.length === 0 ? (
             <EmptyState />
           ) : (
-            <div className="divide-y">
+            <div className="space-y-2">
               {list.map((t) => {
-                const items = Array.isArray(t.transaction_items) ? t.transaction_items : [];
+                const isIncome = t.type === "Pemasukan";
                 return (
                   <div
                     key={t.id}
-                    className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                    className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <Link href={`/dashboard/kas/${t.id}`} className="flex flex-1 min-w-0 items-center gap-3 hover:opacity-80">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300">
-                        <Receipt className="h-4 w-4" />
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                          isIncome
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            : "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                        }`}
+                      >
+                        {isIncome ? (
+                          <ArrowUpRight className="h-5 w-5" />
+                        ) : (
+                          <ArrowDownRight className="h-5 w-5" />
+                        )}
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {t.customer_name || "Pelanggan"}
+                        <p className="truncate font-semibold">
+                          {t.note || t.category || "Transaksi"}
                         </p>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <span>{items.length} item</span>
-                          <span>·</span>
-                          <Badge variant="outline" className="text-[10px]">
-                            {PAYMENT_LABEL[t.payment_method ?? "tunai"] ?? t.payment_method}
+                        <p className="text-xs text-muted-foreground">
+                          {t.category && t.category !== t.note ? `${t.category} · ` : ""}
+                          {t.receipt_no ? `${t.receipt_no} · ` : ""}
+                          {timeAgo(t.date)}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <Badge variant={isIncome ? "default" : "destructive"}>
+                            {t.type}
                           </Badge>
-                          <span>·</span>
-                          <span>{timeAgo(t.created_at)}</span>
+                          {t.is_prive && (
+                            <Badge variant="outline" className="text-xs">Prive</Badge>
+                          )}
                         </div>
                       </div>
-                    </Link>
+                    </div>
+
                     <div className="flex items-center gap-2">
-                      <p className="shrink-0 text-sm font-bold">{formatIDR(t.total ?? 0)}</p>
+                      <div className="text-right">
+                        <p
+                          className={`text-lg font-bold ${
+                            isIncome
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {isIncome ? "+" : "-"}
+                          {formatIDR(t.amount)}
+                        </p>
+                        {t.running_balance != null && (
+                          <p className="text-xs text-muted-foreground">
+                            Saldo: {formatIDR(t.running_balance)}
+                          </p>
+                        )}
+                      </div>
+                      <Button asChild variant="outline" size="icon">
+                        <Link href={`/dashboard/kas/${t.id}`}>
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </Button>
                       <DeleteButton
-                        id={t.id}
-                        name={`Transaksi ${formatIDR(t.total ?? 0)}`}
+                        id={String(t.id)}
+                        name={t.note || t.category || `Transaksi ${t.id}`}
                         deleteAction={deleteTransaction}
+                        redirectTo="/dashboard/kas"
                       />
                     </div>
                   </div>
@@ -176,12 +231,14 @@ function EmptyState() {
       </div>
       <div>
         <p className="font-semibold">Belum ada transaksi</p>
-        <p className="text-sm text-muted-foreground">Catat transaksi pertama Anda untuk mulai berjualan</p>
+        <p className="text-sm text-muted-foreground">
+          Mulai catat transaksi pertama Anda via WhatsApp atau form di bawah
+        </p>
       </div>
       <Button asChild>
         <Link href="/dashboard/kas/new">
           <Plus className="h-4 w-4" />
-          Catat Transaksi Pertama
+          Catat Transaksi
         </Link>
       </Button>
     </div>

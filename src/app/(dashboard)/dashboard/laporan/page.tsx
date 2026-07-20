@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart3, TrendingUp, Calendar, Download, ArrowRight } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, ArrowRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { formatIDR } from "@/lib/format";
@@ -14,119 +15,167 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+type Tx = {
+  id: string;
+  date: string;
+  type: "Pemasukan" | "Pengeluaran";
+  amount: number;
+  category: string | null;
+  note: string | null;
+  receipt_no: string | null;
+};
+
 export default async function LaporanPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const now = new Date();
-  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-  // Hitung ringkasan bulan ini
+  // Ambil semua transaksi user (limit 2000 untuk full month + history)
   const { data: txs } = await supabase
     .from("transactions")
-    .select("id, total, payment_method, created_at")
+    .select("id, date, type, amount, category, note, receipt_no")
     .eq("user_id", user.id)
-    .gte("created_at", firstOfMonth);
+    .order("id", { ascending: false })
+    .limit(2000);
 
-  const list = txs ?? [];
-  const totalRevenue = list.reduce((s, t) => s + Number(t.total ?? 0), 0);
-  const txCount = list.length;
-  const avgTx = txCount > 0 ? totalRevenue / txCount : 0;
+  const list = (txs ?? []) as Tx[];
 
-  // Group by payment method
-  const byMethod: Record<string, { count: number; total: number }> = {};
-  list.forEach((t) => {
-    const m = t.payment_method ?? "tunai";
-    if (!byMethod[m]) byMethod[m] = { count: 0, total: 0 };
-    byMethod[m].count += 1;
-    byMethod[m].total += Number(t.total ?? 0);
+  // Filter bulan ini (date TEXT 'YYYY-MM-DD HH:MM')
+  const now = new Date();
+  const yyyymm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthList = list.filter((t) => t.date.startsWith(yyyymm));
+
+  // Hitung ringkasan bulan ini
+  const monthIn = monthList
+    .filter((t) => t.type === "Pemasukan")
+    .reduce((s, t) => s + Number(t.amount ?? 0), 0);
+  const monthOut = monthList
+    .filter((t) => t.type === "Pengeluaran")
+    .reduce((s, t) => s + Number(t.amount ?? 0), 0);
+  const monthNet = monthIn - monthOut;
+  const txCount = monthList.length;
+  const avgTx = monthList.filter((t) => t.type === "Pemasukan").length > 0
+    ? monthIn / monthList.filter((t) => t.type === "Pemasukan").length
+    : 0;
+
+  // Group by category
+  const byCategory: Record<string, { count: number; total: number; type: string }> = {};
+  monthList.forEach((t) => {
+    const c = t.category || "(Tanpa kategori)";
+    if (!byCategory[c]) byCategory[c] = { count: 0, total: 0, type: t.type };
+    byCategory[c].count += 1;
+    byCategory[c].total += Number(t.amount ?? 0);
   });
+  const categoryList = Object.entries(byCategory)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 10);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Laporan</h1>
+        <h1 className="text-3xl font-bold tracking-tight">📊 Laporan</h1>
         <p className="text-sm text-muted-foreground">
           Periode: {now.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
         </p>
       </div>
 
       {/* Ringkasan bulan ini */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Pendapatan</CardDescription>
-            <CardTitle className="text-2xl">{formatIDR(totalRevenue)}</CardTitle>
+            <CardDescription className="flex items-center gap-1">
+              <ArrowUpRight className="h-3 w-3" />
+              Total Pemasukan
+            </CardDescription>
+            <CardTitle className="text-2xl text-emerald-600">
+              {formatIDR(monthIn)}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-1 text-xs text-emerald-600">
+          <CardContent className="text-xs text-muted-foreground">
+            {monthList.filter((t) => t.type === "Pemasukan").length} transaksi
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-1">
+              <ArrowDownRight className="h-3 w-3" />
+              Total Pengeluaran
+            </CardDescription>
+            <CardTitle className="text-2xl text-rose-600">
+              {formatIDR(monthOut)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            {monthList.filter((t) => t.type === "Pengeluaran").length} transaksi
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-1">
               <TrendingUp className="h-3 w-3" />
-              Bulan ini
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Jumlah Transaksi</CardDescription>
-            <CardTitle className="text-2xl">{txCount}</CardTitle>
+              Cashflow Net
+            </CardDescription>
+            <CardTitle
+              className={`text-2xl ${
+                monthNet >= 0 ? "text-emerald-600" : "text-rose-600"
+              }`}
+            >
+              {formatIDR(monthNet)}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3" />
-              Sejak 1 {now.toLocaleDateString("id-ID", { month: "short" })}
-            </div>
+          <CardContent className="text-xs text-muted-foreground">
+            {monthNet >= 0 ? "Untung bulan ini" : "Rugi bulan ini"}
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Rata-rata Transaksi</CardDescription>
+            <CardDescription className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              Rata-rata Transaksi
+            </CardDescription>
             <CardTitle className="text-2xl">{formatIDR(avgTx)}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <BarChart3 className="h-3 w-3" />
-              Per transaksi
-            </div>
+          <CardContent className="text-xs text-muted-foreground">
+            per transaksi pemasukan
           </CardContent>
         </Card>
       </div>
 
-      {/* Breakdown metode pembayaran */}
+      {/* Breakdown by category */}
       <Card>
         <CardHeader>
-          <CardTitle>Metode Pembayaran</CardTitle>
-          <CardDescription>Distribusi bulan ini</CardDescription>
+          <CardTitle>📊 Top Kategori Bulan Ini</CardTitle>
+          <CardDescription>10 kategori dengan nominal terbesar</CardDescription>
         </CardHeader>
         <CardContent>
-          {Object.keys(byMethod).length === 0 ? (
-            <div className="rounded-lg border border-dashed p-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                Belum ada transaksi bulan ini.
-              </p>
-              <Button asChild className="mt-4" size="sm">
-                <Link href="/dashboard/kas/new">
-                  Catat Transaksi <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+          {categoryList.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Belum ada transaksi bulan ini
+            </p>
           ) : (
-            <div className="space-y-3">
-              {Object.entries(byMethod).map(([m, v]) => {
-                const pct = totalRevenue > 0 ? (v.total / totalRevenue) * 100 : 0;
+            <div className="space-y-2">
+              {categoryList.map(([name, data]) => {
+                const max = categoryList[0][1].total;
+                const pct = (data.total / max) * 100;
+                const isIncome = data.type === "Pemasukan";
                 return (
-                  <div key={m}>
+                  <div key={name} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium capitalize">{m}</span>
-                      <span className="text-muted-foreground">
-                        {v.count}× · {formatIDR(v.total)} ({pct.toFixed(0)}%)
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={isIncome ? "default" : "destructive"}>
+                          {isIncome ? "💰" : "💸"} {name}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {data.count} tx
+                        </span>
+                      </div>
+                      <span className="font-semibold">{formatIDR(data.total)}</span>
                     </div>
-                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full bg-brand-500"
+                        className={`h-full ${
+                          isIncome ? "bg-emerald-500" : "bg-rose-500"
+                        }`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -138,27 +187,41 @@ export default async function LaporanPage() {
         </CardContent>
       </Card>
 
-      {/* Coming soon cards */}
+      {/* Quick links */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">📊 Laporan Harian</CardTitle>
-            <CardDescription>Grafik penjualan 7 / 30 hari ke belakang</CardDescription>
+            <CardTitle>📦 Cek Stok Produk</CardTitle>
+            <CardDescription>Lihat inventaris &amp; produk yang perlu restock</CardDescription>
           </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/dashboard/produk">
+                Buka Halaman Produk
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">📥 Export CSV / PDF</CardTitle>
-            <CardDescription>Download laporan bulanan untuk arsip</CardDescription>
+            <CardTitle>💰 Detail Buku Kas</CardTitle>
+            <CardDescription>Lihat semua transaksi bulan ini</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm" disabled>
-              <Download className="mr-2 h-4 w-4" />
-              Segera Hadir
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/dashboard/kas">
+                Buka Buku Kas
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </Button>
           </CardContent>
         </Card>
       </div>
+
+      <p className="text-center text-xs text-muted-foreground">
+        💡 Untuk export PDF/Excel, gunakan fitur download di Supabase Dashboard
+      </p>
     </div>
   );
 }

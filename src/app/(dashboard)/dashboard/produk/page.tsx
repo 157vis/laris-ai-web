@@ -20,13 +20,12 @@ export const dynamic = "force-dynamic";
 type Product = {
   id: string;
   name: string;
-  sku: string | null;
   price: number;
-  cost: number | null;
   stock: number;
-  min_stock: number;
-  unit: string;
   category: string | null;
+  description: string | null;
+  image_url: string | null;
+  is_active: boolean;
 };
 
 export default async function ProdukPage() {
@@ -38,13 +37,14 @@ export default async function ProdukPage() {
 
   const { data: products } = await supabase
     .from("products")
-    .select("id, name, sku, price, cost, stock, min_stock, unit, category")
+    .select("id, name, price, stock, category, description, image_url, is_active")
     .eq("user_id", user.id)
     .order("name", { ascending: true });
 
   const list = (products ?? []) as Product[];
   const totalProducts = list.length;
-  const lowStock = list.filter((p) => p.stock <= (p.min_stock ?? 5));
+  // Skema tidak punya min_stock, pakai threshold 5
+  const lowStock = list.filter((p) => (p.stock ?? 0) < 5);
   const totalStockValue = list.reduce((s, p) => s + (p.stock ?? 0) * (p.price ?? 0), 0);
 
   return (
@@ -110,7 +110,7 @@ export default async function ProdukPage() {
           ) : (
             <div className="space-y-2">
               {list.map((p) => {
-                const isLow = p.stock <= (p.min_stock ?? 5);
+                const isLow = (p.stock ?? 0) < 5;
                 const isOut = p.stock === 0;
                 return (
                   <div
@@ -124,11 +124,11 @@ export default async function ProdukPage() {
                       <div className="min-w-0">
                         <p className="truncate font-semibold">{p.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {p.category ?? "Tanpa kategori"} · {p.sku ?? "Tanpa SKU"} · {p.unit ?? "pcs"}
+                          {p.category ?? "Tanpa kategori"}
                         </p>
                         <div className="mt-1 flex flex-wrap items-center gap-2">
                           <Badge variant={isOut ? "destructive" : isLow ? "outline" : "secondary"}>
-                            Stok: {p.stock} {p.unit ?? "pcs"}
+                            Stok: {p.stock} pcs
                           </Badge>
                           <span className="text-xs font-semibold">{formatIDR(p.price ?? 0)}</span>
                         </div>

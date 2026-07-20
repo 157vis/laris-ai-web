@@ -1,24 +1,37 @@
 /**
- * Dashboard queries — Server-side data fetching untuk Dashboard Kasir (FASE 3).
- * Ref: bukuwarung-ai/sql/setup_laris_ai_unified.sql (schema transactions, products)
+ * Dashboard queries — Server-side data fetching untuk Dashboard Kasir.
+ * Ref: bukuwarung-ai/sql/setup_laris_ai_unified.sql
+ *
+ * IMPORTANT: Skema tabel ini ADAPT ke schema REAL Supabase existing:
+ *   - products: id, user_id, name, price, stock, category, description, image_url, is_active, created_at
+ *   - transactions: id, date (TEXT), type ('Pemasukan'|'Pengeluaran'),
+ *                   amount, category, note, receipt_no, running_balance, is_prive, user_id, tenant_id
+ *   - transaction_items: TIDAK ADA (skip)
+ *
+ * Backend lama (bukuwarung-ai) pakai schema ini, jadi Next.js align.
  */
 
 import { createClient } from "@/lib/supabase/server";
 
 export type DashboardStats = {
   todayRevenue: number;
+  todayExpenses: number;
+  netCashflow: number;
   todayTransactions: number;
   lowStockCount: number;
   monthTransactions: number;
+  monthRevenue: number;
+  monthExpenses: number;
   activeCustomers: number;
   revenueLast7Days: Array<{ date: string; revenue: number }>;
   topProducts: Array<{ name: string; sold: number; revenue: number }>;
   recentTransactions: Array<{
     id: string;
-    customer_name: string | null;
-    total: number;
-    created_at: string;
-    items_count: number;
+    note: string | null;
+    category: string | null;
+    type: string;
+    amount: number;
+    date: string;
   }>;
 };
 
@@ -38,8 +51,9 @@ export function formatIDR(amount: number): string {
  * Format tanggal relatif: "Baru saja", "5 menit lalu", "2 jam lalu", dst.
  */
 export function timeAgo(iso: string): string {
+  // Handle date format 'YYYY-MM-DD HH:MM' (string) atau ISO datetime
+  const then = new Date(iso.replace(" ", "T")).getTime();
   const now = Date.now();
-  const then = new Date(iso).getTime();
   const diff = Math.floor((now - then) / 1000);
   if (diff < 60) return "Baru saja";
   if (diff < 3600) return `${Math.floor(diff / 60)} menit lalu`;
@@ -53,6 +67,7 @@ export function timeAgo(iso: string): string {
 
 /**
  * Build array 7 hari terakhir dengan date label & revenue default 0.
+ * Return date dalam format YYYY-MM-DD (string match dengan date column).
  */
 function last7DaysSkeleton(): Array<{ date: string; revenue: number }> {
   const days: Array<{ date: string; revenue: number }> = [];
@@ -60,9 +75,8 @@ function last7DaysSkeleton(): Array<{ date: string; revenue: number }> {
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    d.setHours(0, 0, 0, 0);
     days.push({
-      date: d.toISOString().split("T")[0],
+      date: d.toISOString().split("T")[0], // YYYY-MM-DD
       revenue: 0,
     });
   }
@@ -70,17 +84,53 @@ function last7DaysSkeleton(): Array<{ date: string; revenue: number }> {
 }
 
 /**
+ * Parse date string 'YYYY-MM-DD HH:MM' → Date.
+ * Schema transactions pakai format ini (bukan ISO).
+ */
+function parseTxDate(dateStr: string): Date {
+  // Replace space dengan T supaya Date bisa parse
+  return new Date(dateStr.replace(" ", "T"));
+}
+
+/**
+ * Compare transaction date with today start.
+ */
+function isToday(dateStr: string, todayStart: Date): boolean {
+  const d = parseTxDate(dateStr);
+  return d >= todayStart;
+}
+
+/**
+ * Compare transaction date with N days ago.
+ */
+function isWithinDays(dateStr: string, daysAgo: Date): boolean {
+  const d = parseTxDate(dateStr);
+  return d >= daysAgo;
+}
+
+/**
  * Fetch semua stats dashboard untuk user yang login.
  * Jika query gagal, return data kosong (graceful degradation).
+ *
+ * ADAPTASI SKEMA:
+ * - transactions: pakai 'date' (TEXT) bukan 'created_at'
+ * - type: 'Pemasukan' = revenue, 'Pengeluaran' = expense
+ * - amount: nominal transaksi
+ * - category + note: informasi tambahan (gabungan dipakai untuk display)
+ * - products: pakai 'created_at' (ISO datetime) dan 'stock' untuk low stock
  */
 export async function getDashboardStats(userId: string): Promise<DashboardStats> {
   const supabase = await createClient();
   const skeleton = last7DaysSkeleton();
   const empty: DashboardStats = {
     todayRevenue: 0,
+    todayExpenses: 0,
+    netCashflow: 0,
     todayTransactions: 0,
     lowStockCount: 0,
     monthTransactions: 0,
+    monthRevenue: 0,
+    monthExpenses: 0,
     activeCustomers: 0,
     revenueLast7Days: skeleton,
     topProducts: [],
@@ -90,117 +140,119 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
   try {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
+    const todayStr = todayStart.toISOString().split("T")[0]; // YYYY-MM-DD
+    const monthAgo = new Date();
+    monthAgo.setDate(monthAgo.getDate() - 30);
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    // 1) Today revenue & count (transactions table)
-    const { data: todayRows } = await supabase
+    // 1) ALL transactions user ini (filter di client karena date TEXT)
+    // Pakai limit besar supaya dapat semua data
+    const { data: allTx, error: txError } = await supabase
       .from("transactions")
-      .select("total")
+      .select("id, date, type, amount, category, note, receipt_no, running_balance, is_prive")
       .eq("user_id", userId)
-      .gte("created_at", todayStart.toISOString());
+      .order("id", { ascending: false })
+      .limit(2000);
 
-    const todayRevenue =
-      todayRows?.reduce((s, r) => s + (Number(r.total) || 0), 0) ?? 0;
+    if (txError) {
+      console.error("[dashboard] transactions query error:", txError);
+      return empty;
+    }
 
-    // 2) Month transaction count
-    const { count: monthCount } = await supabase
-      .from("transactions")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", monthStart.toISOString());
+    const txList = allTx || [];
 
-    // 3) Revenue 7 hari terakhir (group by date)
-    const { data: weekRows } = await supabase
-      .from("transactions")
-      .select("total, created_at")
-      .eq("user_id", userId)
-      .gte("created_at", sevenDaysAgo.toISOString());
+    // Today revenue & expenses
+    const todayTx = txList.filter((t) => isToday(t.date, todayStart));
+    const todayRevenue = todayTx
+      .filter((t) => t.type === "Pemasukan")
+      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const todayExpenses = todayTx
+      .filter((t) => t.type === "Pengeluaran")
+      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const todayTransactions = todayTx.length;
+    const netCashflow = todayRevenue - todayExpenses;
 
+    // Month stats (30 hari terakhir)
+    const monthTx = txList.filter((t) => isWithinDays(t.date, monthAgo));
+    const monthRevenue = monthTx
+      .filter((t) => t.type === "Pemasukan")
+      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const monthExpenses = monthTx
+      .filter((t) => t.type === "Pengeluaran")
+      .reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const monthTransactions = monthTx.length;
+
+    // Revenue 7 hari terakhir
+    const weekTx = txList.filter((t) => isWithinDays(t.date, sevenDaysAgo));
     const revenueMap = new Map<string, number>();
     skeleton.forEach((d) => revenueMap.set(d.date, 0));
-    weekRows?.forEach((r) => {
-      const dateKey = new Date(r.created_at).toISOString().split("T")[0];
-      revenueMap.set(dateKey, (revenueMap.get(dateKey) ?? 0) + Number(r.total || 0));
-    });
+    weekTx
+      .filter((t) => t.type === "Pemasukan")
+      .forEach((t) => {
+        const dateKey = t.date.split(" ")[0]; // YYYY-MM-DD
+        if (revenueMap.has(dateKey)) {
+          revenueMap.set(dateKey, (revenueMap.get(dateKey) ?? 0) + Number(t.amount || 0));
+        }
+      });
     const revenueLast7Days = skeleton.map((d) => ({
       ...d,
       revenue: revenueMap.get(d.date) ?? 0,
     }));
 
-    // 4) Low stock products (stock < min_stock OR stock < 5)
+    // Active customers (distinct note yang ada, 30 hari terakhir)
+    // Karena tidak ada customer_phone, kita pakai 'note' sbg identifier customer
+    const uniqueNotes = new Set(
+      monthTx
+        .map((t) => (t.note || "").trim())
+        .filter((n) => n && n.length > 0 && !n.toLowerCase().includes("jual"))
+    );
+
+    // Low stock products (stock < 5)
     const { count: lowStockCount } = await supabase
       .from("products")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .or("stock.lt.5,stock.lt.min_stock");
+      .lt("stock", 5)
+      .eq("is_active", true);
 
-    // 5) Active customers (distinct customer_phone dalam 30 hari)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const { data: customers } = await supabase
-      .from("transactions")
-      .select("customer_phone")
-      .eq("user_id", userId)
-      .gte("created_at", thirtyDaysAgo.toISOString())
-      .not("customer_phone", "is", null);
-    const uniqueCustomers = new Set(
-      customers?.map((c) => c.customer_phone).filter(Boolean) ?? []
-    );
-
-    // 6) Top products (aggregate dari transaction_items)
-    let topProducts: Array<{ name: string; sold: number; revenue: number }> = [];
-    try {
-      const { data: items } = await supabase
-        .from("transaction_items")
-        .select("quantity, subtotal, product_id, products(name)")
-        .eq("user_id", userId)
-        .gte("created_at", monthStart.toISOString())
-        .limit(500);
-
-      const productMap = new Map<string, { name: string; sold: number; revenue: number }>();
-      items?.forEach((it: { quantity: number; subtotal: number; product_id: string; products: { name: string } | { name: string }[] | null }) => {
-        const prod = Array.isArray(it.products) ? it.products[0] : it.products;
-        const name = prod?.name ?? "Produk";
-        const existing = productMap.get(it.product_id) ?? { name, sold: 0, revenue: 0 };
-        existing.sold += Number(it.quantity || 0);
-        existing.revenue += Number(it.subtotal || 0);
-        productMap.set(it.product_id, existing);
+    // Top products (aggregate dari note transaksi, karena tidak ada transaction_items)
+    // Kita parse note untuk extract nama produk jika ada pola 'jual X' atau 'X'
+    const productMap = new Map<string, { name: string; sold: number; revenue: number }>();
+    monthTx
+      .filter((t) => t.type === "Pemasukan")
+      .forEach((t) => {
+        const name = (t.category || t.note || "Penjualan").trim() || "Penjualan";
+        const existing = productMap.get(name) ?? { name, sold: 0, revenue: 0 };
+        existing.sold += 1;
+        existing.revenue += Number(t.amount || 0);
+        productMap.set(name, existing);
       });
-      topProducts = Array.from(productMap.values())
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, 5);
-    } catch {
-      // table transaction_items mungkin belum ada
-    }
+    const topProducts = Array.from(productMap.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
 
-    // 7) Recent transactions
-    const { data: recent } = await supabase
-      .from("transactions")
-      .select("id, customer_name, total, created_at, transaction_items(id)")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(10);
-
-    const recentTransactions =
-      recent?.map((r) => ({
-        id: r.id,
-        customer_name: r.customer_name ?? null,
-        total: Number(r.total) || 0,
-        created_at: r.created_at,
-        items_count: Array.isArray(r.transaction_items) ? r.transaction_items.length : 0,
-      })) ?? [];
+    // Recent transactions (10 terakhir)
+    const recentTransactions = txList.slice(0, 10).map((t) => ({
+      id: String(t.id),
+      note: t.note ?? null,
+      category: t.category ?? null,
+      type: t.type,
+      amount: Number(t.amount) || 0,
+      date: t.date,
+    }));
 
     return {
       todayRevenue,
-      todayTransactions: todayRows?.length ?? 0,
+      todayExpenses,
+      netCashflow,
+      todayTransactions,
       lowStockCount: lowStockCount ?? 0,
-      monthTransactions: monthCount ?? 0,
-      activeCustomers: uniqueCustomers.size,
+      monthTransactions,
+      monthRevenue,
+      monthExpenses,
+      activeCustomers: uniqueNotes.size,
       revenueLast7Days,
       topProducts,
       recentTransactions,

@@ -1,6 +1,14 @@
 /**
  * Server Actions untuk CRUD Buku Kas + Produk.
- * Ref: bukuwarung-ai/sql/setup_laris_ai_unified.sql
+ *
+ * ADAPTASI SKEMA Supabase existing (bukuwarung-ai):
+ *   - products: id, user_id, name, price, stock, category, description, image_url, is_active, created_at
+ *   - transactions: id, date, type ('Pemasukan'|'Pengeluaran'),
+ *                   amount, category, note, receipt_no, running_balance, is_prive, user_id
+ *   - transaction_items: TIDAK ADA
+ *
+ * Karena tidak ada transaction_items, kita collapse transaksi jadi 1 row saja
+ * dengan amount = total & category = nama produk (jika single item).
  */
 "use server";
 
@@ -13,19 +21,15 @@ import { createClient } from "@/lib/supabase/server";
 
 const productSchema = z.object({
   name: z.string().min(1, "Nama produk wajib diisi").max(120),
-  sku: z.string().max(50).optional().nullable(),
-  barcode: z.string().max(50).optional().nullable(),
   price: z.coerce.number().min(0, "Harga minimal 0").default(0),
-  cost: z.coerce.number().min(0).default(0),
   stock: z.coerce.number().int().min(0).default(0),
-  min_stock: z.coerce.number().int().min(0).default(5),
-  unit: z.string().max(20).default("pcs"),
   category: z.string().max(50).optional().nullable(),
   description: z.string().max(500).optional().nullable(),
+  image_url: z.string().url().optional().nullable().or(z.literal("")),
 });
 
 const transactionItemSchema = z.object({
-  product_id: z.string().uuid().optional().nullable(),
+  product_id: z.coerce.number().int().optional().nullable(),
   name: z.string().min(1),
   quantity: z.coerce.number().int().min(1),
   price: z.coerce.number().min(0),
@@ -33,13 +37,60 @@ const transactionItemSchema = z.object({
 });
 
 const transactionSchema = z.object({
-  customer_name: z.string().max(120).optional().nullable(),
-  customer_phone: z.string().max(20).optional().nullable(),
-  payment_method: z.enum(["tunai", "qris", "transfer", "kredit"]).default("tunai"),
-  notes: z.string().max(500).optional().nullable(),
+  // Frontend form pakai 'note' sbg customer_name (mis. "Pelanggan X" atau "Budi")
+  note: z.string().max(120).optional().nullable(),
+  // type: 'Pemasukan' (jual) atau 'Pengeluaran' (beli)
+  type: z.enum(["Pemasukan", "Pengeluaran"]).default("Pemasukan"),
+  category: z.string().max(50).optional().nullable(),
   items: z.array(transactionItemSchema).min(1, "Minimal 1 item"),
   total: z.coerce.number().min(0),
+  is_prive: z.coerce.boolean().default(false),
 });
+
+/**
+ * Generate receipt_no otomatis.
+ * Format: KM-YYMMDD-NNN (Pemasukan) atau KK-YYMMDD-NNN (Pengeluaran)
+ */
+async function generateReceiptNo(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  type: "Pemasukan" | "Pengeluaran"
+): Promise<string> {
+  const prefix = type === "Pemasukan" ? "KM" : "KK";
+  const now = new Date();
+  const yymmdd =
+    now.getFullYear().toString().slice(2) +
+    String(now.getMonth() + 1).padStart(2, "0") +
+    String(now.getDate()).padStart(2, "0");
+
+  // Count transaksi hari ini untuk sequence
+  const { count } = await supabase
+    .from("transactions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("type", type);
+
+  const seq = String((count ?? 0) + 1).padStart(3, "0");
+  return `${prefix}-${yymmdd}-${seq}`;
+}
+
+/**
+ * Hitung running_balance baru.
+ */
+async function getLastRunningBalance(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<number> {
+  const { data } = await supabase
+    .from("transactions")
+    .select("running_balance")
+    .eq("user_id", userId)
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return Number(data?.running_balance ?? 0);
+}
 
 // ============ PRODUCT ACTIONS ============
 
@@ -52,15 +103,11 @@ export async function createProduct(formData: FormData) {
 
   const parsed = productSchema.parse({
     name: formData.get("name"),
-    sku: formData.get("sku") || null,
-    barcode: formData.get("barcode") || null,
     price: formData.get("price") || 0,
-    cost: formData.get("cost") || 0,
     stock: formData.get("stock") || 0,
-    min_stock: formData.get("min_stock") || 5,
-    unit: formData.get("unit") || "pcs",
     category: formData.get("category") || null,
     description: formData.get("description") || null,
+    image_url: formData.get("image_url") || null,
   });
 
   const { error } = await supabase.from("products").insert({
@@ -82,15 +129,11 @@ export async function updateProduct(id: string, formData: FormData) {
 
   const parsed = productSchema.parse({
     name: formData.get("name"),
-    sku: formData.get("sku") || null,
-    barcode: formData.get("barcode") || null,
     price: formData.get("price") || 0,
-    cost: formData.get("cost") || 0,
     stock: formData.get("stock") || 0,
-    min_stock: formData.get("min_stock") || 5,
-    unit: formData.get("unit") || "pcs",
     category: formData.get("category") || null,
     description: formData.get("description") || null,
+    image_url: formData.get("image_url") || null,
   });
 
   const { error } = await supabase
@@ -165,51 +208,65 @@ export async function createTransaction(formData: FormData) {
   const items = JSON.parse(itemsJson);
 
   const parsed = transactionSchema.parse({
-    customer_name: formData.get("customer_name") || null,
-    customer_phone: formData.get("customer_phone") || null,
-    payment_method: formData.get("payment_method") || "tunai",
-    notes: formData.get("notes") || null,
+    note: formData.get("note") || null,
+    type: formData.get("type") || "Pemasukan",
+    category: formData.get("category") || null,
     items,
     total: formData.get("total") || 0,
+    is_prive: formData.get("is_prive") === "true",
   });
 
-  // 1) Create transaction
+  // === ADAPTASI: Karena tidak ada transaction_items, kita collapse ke 1 row
+  // Ambil item pertama sebagai representative
+  const firstItem = parsed.items[0];
+  const category = parsed.category || firstItem?.name || "Penjualan";
+  const noteFull =
+    parsed.note ||
+    (parsed.items.length === 1
+      ? `${firstItem.name} (${firstItem.quantity}x)`
+      : `${parsed.items.length} item: ${parsed.items.map((i) => i.name).join(", ")}`);
+
+  // Hitung receipt_no & running_balance
+  const receiptNo = await generateReceiptNo(supabase, user.id, parsed.type);
+  const lastBalance = await getLastRunningBalance(supabase, user.id);
+  const newBalance =
+    parsed.type === "Pemasukan" ? lastBalance + parsed.total : lastBalance - parsed.total;
+
+  // Format date 'YYYY-MM-DD HH:MM' (schema existing)
+  const now = new Date();
+  const dateStr =
+    now.getFullYear() +
+    "-" +
+    String(now.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(now.getDate()).padStart(2, "0") +
+    " " +
+    String(now.getHours()).padStart(2, "0") +
+    ":" +
+    String(now.getMinutes()).padStart(2, "0");
+
+  // 1) Insert transaction
   const { data: tx, error: txError } = await supabase
     .from("transactions")
     .insert({
       user_id: user.id,
-      customer_name: parsed.customer_name,
-      customer_phone: parsed.customer_phone,
-      payment_method: parsed.payment_method,
-      notes: parsed.notes,
-      total: parsed.total,
+      date: dateStr,
+      type: parsed.type,
+      amount: parsed.total,
+      category,
+      note: noteFull,
+      receipt_no: receiptNo,
+      running_balance: newBalance,
+      is_prive: parsed.is_prive,
     })
     .select("id")
     .single();
 
   if (txError || !tx) throw new Error(txError?.message ?? "Gagal membuat transaksi");
 
-  // 2) Insert transaction_items + kurangi stok
-  const itemsToInsert = parsed.items.map((it) => ({
-    user_id: user.id,
-    transaction_id: tx.id,
-    product_id: it.product_id ?? null,
-    name: it.name,
-    quantity: it.quantity,
-    price: it.price,
-    subtotal: it.subtotal,
-  }));
-
-  const { error: itemsError } = await supabase
-    .from("transaction_items")
-    .insert(itemsToInsert);
-
-  if (itemsError) throw new Error(itemsError.message);
-
-  // 3) Kurangi stok untuk produk yang valid
+  // 2) Kurangi stok untuk setiap item (jika product_id valid)
   for (const it of parsed.items) {
     if (it.product_id) {
-      // Ambil stok saat ini, decrement
       const { data: prod } = await supabase
         .from("products")
         .select("stock")
@@ -236,12 +293,6 @@ export async function deleteTransaction(id: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-
-  // Hapus items dulu (jika FK cascade OK, kalau tidak)
-  await supabase
-    .from("transaction_items")
-    .delete()
-    .eq("transaction_id", id);
 
   const { error } = await supabase
     .from("transactions")

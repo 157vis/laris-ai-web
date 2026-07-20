@@ -35,10 +35,10 @@ type TransactionFormProps = {
 
 export function TransactionForm({ products, action }: TransactionFormProps) {
   const [items, setItems] = useState<Item[]>([]);
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"tunai" | "qris" | "transfer" | "kredit">("tunai");
-  const [notes, setNotes] = useState("");
+  const [note, setNote] = useState("");
+  const [type, setType] = useState<"Pemasukan" | "Pengeluaran">("Pemasukan");
+  const [category, setCategory] = useState("");
+  const [isPrive, setIsPrive] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -98,10 +98,10 @@ export function TransactionForm({ products, action }: TransactionFormProps) {
     }
     formData.set("items", JSON.stringify(items));
     formData.set("total", String(total));
-    formData.set("customer_name", customerName);
-    formData.set("customer_phone", customerPhone);
-    formData.set("payment_method", paymentMethod);
-    formData.set("notes", notes);
+    formData.set("note", note);
+    formData.set("type", type);
+    formData.set("category", category);
+    formData.set("is_prive", String(isPrive));
 
     startTransition(async () => {
       try {
@@ -239,62 +239,64 @@ export function TransactionForm({ products, action }: TransactionFormProps) {
         </Card>
       )}
 
-      {/* Customer & payment */}
+      {/* Transaction metadata */}
       <Card>
         <CardHeader>
-          <CardTitle>Pelanggan & Pembayaran</CardTitle>
-          <CardDescription>Opsional untuk tunai, wajib untuk kredit/transfer</CardDescription>
+          <CardTitle>Detail Transaksi</CardTitle>
+          <CardDescription>Tipe, kategori, dan catatan (opsional)</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="customer_name">Nama Pelanggan</Label>
-              <Input
-                id="customer_name"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Pelanggan / kosongkan"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customer_phone">No. WhatsApp</Label>
-              <Input
-                id="customer_phone"
-                type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="08xxx"
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Metode Pembayaran</Label>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {(["tunai", "qris", "transfer", "kredit"] as const).map((m) => (
+              <Label>Tipe Transaksi</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {(["Pemasukan", "Pengeluaran"] as const).map((t) => (
                   <button
-                    key={m}
+                    key={t}
                     type="button"
-                    onClick={() => setPaymentMethod(m)}
+                    onClick={() => setType(t)}
                     className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                      paymentMethod === m
-                        ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950/30"
+                      type === t
+                        ? t === "Pemasukan"
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30"
+                          : "border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-950/30"
                         : "bg-background hover:bg-muted"
                     }`}
                   >
-                    {m.toUpperCase()}
+                    {t === "Pemasukan" ? "💰 Pemasukan" : "💸 Pengeluaran"}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="notes">Catatan</Label>
-              <textarea
-                id="notes"
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Catatan tambahan (opsional)"
-                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            <div className="space-y-2">
+              <Label htmlFor="category">Kategori</Label>
+              <Input
+                id="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="cth: Penjualan, Bensin, Beli Stok"
               />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="note">Catatan / Nama</Label>
+              <Input
+                id="note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="cth: Jual kopi 2, Beli bensin, Gaji"
+              />
+            </div>
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <input
+                type="checkbox"
+                id="is_prive"
+                checked={isPrive}
+                onChange={(e) => setIsPrive(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="is_prive" className="cursor-pointer">
+                Transaksi Prive (pengambilan pribadi, tidak masuk bisnis)
+              </Label>
             </div>
           </div>
         </CardContent>

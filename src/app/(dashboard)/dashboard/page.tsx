@@ -124,11 +124,25 @@ export default async function DashboardPage() {
       {/* KPI Cards - LIVE DATA */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          title="Hari Ini"
+          title="Pemasukan Hari Ini"
           value={formatIDR(stats.todayRevenue)}
           subtitle={`${stats.todayTransactions} transaksi`}
           icon={<TrendingUp className="h-5 w-5" />}
           variant="success"
+        />
+        <KpiCard
+          title="Pengeluaran Hari Ini"
+          value={formatIDR(stats.todayExpenses)}
+          subtitle={stats.todayExpenses > 0 ? "Beban operasional" : "Belum ada"}
+          icon={<Package className="h-5 w-5" />}
+          variant={stats.todayExpenses > 0 ? "danger" : "default"}
+        />
+        <KpiCard
+          title="Cashflow Net"
+          value={formatIDR(stats.netCashflow)}
+          subtitle={stats.netCashflow >= 0 ? "Untung hari ini" : "Rugi hari ini"}
+          icon={<Receipt className="h-5 w-5" />}
+          variant={stats.netCashflow >= 0 ? "success" : "danger"}
         />
         <KpiCard
           title="Stok Menipis"
@@ -137,12 +151,23 @@ export default async function DashboardPage() {
           icon={<Package className="h-5 w-5" />}
           variant={stats.lowStockCount > 0 ? "warning" : "default"}
         />
+      </div>
+
+      {/* Secondary KPI row */}
+      <div className="grid gap-4 sm:grid-cols-3">
         <KpiCard
-          title="Total Transaksi"
-          value={String(stats.monthTransactions)}
-          subtitle="bulan ini"
-          icon={<Receipt className="h-5 w-5" />}
+          title="Pemasukan Bulan Ini"
+          value={formatIDR(stats.monthRevenue)}
+          subtitle={`${stats.monthTransactions} transaksi`}
+          icon={<TrendingUp className="h-5 w-5" />}
           variant="info"
+        />
+        <KpiCard
+          title="Pengeluaran Bulan Ini"
+          value={formatIDR(stats.monthExpenses)}
+          subtitle="total biaya"
+          icon={<Package className="h-5 w-5" />}
+          variant="warning"
         />
         <KpiCard
           title="Pelanggan Aktif"
