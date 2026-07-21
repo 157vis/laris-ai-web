@@ -50,10 +50,6 @@ export default async function LaporanPage() {
     .filter((t) => t.type === "Pengeluaran")
     .reduce((s, t) => s + Number(t.amount ?? 0), 0);
   const monthNet = monthIn - monthOut;
-  const avgTx =
-    monthRows.filter((t) => t.type === "Pemasukan").length > 0
-      ? monthIn / monthRows.filter((t) => t.type === "Pemasukan").length
-      : 0;
 
   // Group by category
   const byCategoryMap: Record<
