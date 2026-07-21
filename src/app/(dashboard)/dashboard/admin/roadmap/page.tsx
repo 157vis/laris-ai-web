@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Map, CheckCircle2, Clock, Circle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { requireAdmin, getRoadmapItems, logAdminAction } from "@/lib/admin/rbac";
+import { getCurrentAdminProfile, getRoadmapItems, logAdminAction } from "@/lib/admin/rbac";
+import { AccessDenied } from "@/components/admin/access-denied";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Roadmap Laris.AI",
@@ -33,9 +35,24 @@ const STATUS_STYLES = {
 };
 
 export default async function AdminRoadmapPage() {
-  const admin = await requireAdmin();
+  const adminProfile = await getCurrentAdminProfile();
+
+  // Render AccessDenied kalau user bukan admin
+  if (!adminProfile || adminProfile.role !== "admin") {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return (
+      <AccessDenied
+        currentRole={adminProfile?.role ?? "pemilik"}
+        userEmail={user?.email ?? undefined}
+      />
+    );
+  }
+
   const items = await getRoadmapItems();
-  await logAdminAction(admin.id, "view_admin_roadmap", "admin_roadmap_page");
+  await logAdminAction(adminProfile.id, "view_admin_roadmap", "admin_roadmap_page");
 
   const doneCount = items.filter((i) => i.status === "done").length;
   const totalCount = items.length;

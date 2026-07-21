@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Users, Shield, Store, Briefcase, UserCog } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { requireAdmin, getAllUsers, logAdminAction } from "@/lib/admin/rbac";
+import { getCurrentAdminProfile, getAllUsers, logAdminAction } from "@/lib/admin/rbac";
 import { ROLE_LABELS } from "@/types/auth";
+import { AccessDenied } from "@/components/admin/access-denied";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Manajemen User",
@@ -20,11 +22,26 @@ const ROLE_ICONS: Record<string, typeof Shield> = {
 };
 
 export default async function AdminUsersPage() {
-  const admin = await requireAdmin();
+  const adminProfile = await getCurrentAdminProfile();
+
+  // Render AccessDenied kalau user bukan admin
+  if (!adminProfile || adminProfile.role !== "admin") {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return (
+      <AccessDenied
+        currentRole={adminProfile?.role ?? "pemilik"}
+        userEmail={user?.email ?? undefined}
+      />
+    );
+  }
+
   const users = await getAllUsers();
 
   // Log admin visit
-  await logAdminAction(admin.id, "view_admin_users", "admin_users_page");
+  await logAdminAction(adminProfile.id, "view_admin_users", "admin_users_page");
 
   // Hitung statistik per role
   const byRole = users.reduce<Record<string, number>>((acc, u) => {

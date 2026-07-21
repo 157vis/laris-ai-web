@@ -10,7 +10,9 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { requireAdmin, getAdminStats } from "@/lib/admin/rbac";
+import { getCurrentAdminProfile, getAdminStats } from "@/lib/admin/rbac";
+import { AccessDenied } from "@/components/admin/access-denied";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Super Admin Console",
@@ -20,7 +22,22 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminConsolePage() {
-  const admin = await requireAdmin();
+  const adminProfile = await getCurrentAdminProfile();
+
+  // Render AccessDenied kalau user bukan admin (lebih baik dari silent redirect)
+  if (!adminProfile || adminProfile.role !== "admin") {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return (
+      <AccessDenied
+        currentRole={adminProfile?.role ?? "pemilik"}
+        userEmail={user?.email ?? undefined}
+      />
+    );
+  }
+
   const stats = await getAdminStats();
 
   const adminCards = [

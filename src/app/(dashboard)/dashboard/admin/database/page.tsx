@@ -10,7 +10,9 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { requireAdmin, getAdminStats, logAdminAction } from "@/lib/admin/rbac";
+import { getCurrentAdminProfile, getAdminStats, logAdminAction } from "@/lib/admin/rbac";
+import { AccessDenied } from "@/components/admin/access-denied";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Database & Setup",
@@ -31,9 +33,24 @@ const TABLES = [
 ];
 
 export default async function AdminDatabasePage() {
-  const admin = await requireAdmin();
+  const adminProfile = await getCurrentAdminProfile();
+
+  // Render AccessDenied kalau user bukan admin
+  if (!adminProfile || adminProfile.role !== "admin") {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return (
+      <AccessDenied
+        currentRole={adminProfile?.role ?? "pemilik"}
+        userEmail={user?.email ?? undefined}
+      />
+    );
+  }
+
   const stats = await getAdminStats();
-  await logAdminAction(admin.id, "view_admin_database", "admin_database_page");
+  await logAdminAction(adminProfile.id, "view_admin_database", "admin_database_page");
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const projectRef = supabaseUrl.replace(/^https:\/\//, "").split(".")[0];

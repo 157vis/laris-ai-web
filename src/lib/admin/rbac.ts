@@ -24,8 +24,48 @@ async function getCurrentUserId(): Promise<string | null> {
 }
 
 /**
+ * Ambil profile user saat ini.
+ * Return null kalau:
+ * - Tidak ada session
+ * - User tidak ditemukan di profiles table
+ *
+ * Tidak redirect — biarkan caller yang memutuskan mau render apa.
+ */
+export async function getCurrentAdminProfile(): Promise<UserProfile | null> {
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+
+  try {
+    const admin = createAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("id, email, full_name, role, phone, industry, client_id, business_name, created_at")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!profile) return null;
+
+    return {
+      id: profile.id,
+      email: profile.email,
+      fullName: profile.full_name ?? "User",
+      avatarUrl: null,
+      role: profile.role as UserProfile["role"],
+      businessName: profile.business_name ?? null,
+      createdAt: profile.created_at,
+    };
+  } catch (err) {
+    console.warn("[admin] getCurrentAdminProfile error (service-role unavailable?):", err);
+    return null;
+  }
+}
+
+/**
  * Require user dengan role admin. Redirect ke /dashboard kalau bukan.
- * Pakai service-role client supaya konsisten (tidak terblokir RLS).
+ *
+ * Untuk halaman admin yang ingin render "Access Denied" UI (lebih user-friendly
+ * dari silent redirect), pakai `getCurrentAdminProfile()` lalu cek `profile?.role`
+ * secara manual di page component.
  */
 export async function requireAdmin(): Promise<UserProfile> {
   const userId = await getCurrentUserId();

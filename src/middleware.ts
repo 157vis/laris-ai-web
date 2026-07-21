@@ -6,17 +6,33 @@ import type { UserRole } from "@/types/auth";
 /**
  * Middleware utama: handle Supabase session refresh + RBAC route protection.
  *
- * CATATAN PENTING: Middleware Vercel jalan di Edge Runtime.
- * `@supabase/supabase-js` (createAdminClient) TIDAK kompatibel dengan Edge
- * (butuh Node.js APIs). Jadi kita pakai alternatif:
- * 1. Baca role dari user.app_metadata?.role (default fallback: 'pemilik')
- * 2. Middleware ini CEGAH akses route yang butuh role spesifik
- * 3. Server component / page itu sendiri verify role via service-role
- *    (lib/admin/rbac.ts → requireAdmin() — yang Node.js compatible)
+ * Strategy:
+ * - Public routes: biarkan lewat
+ * - Protected routes: wajib ada user (kalau tidak → /login)
+ * - RBAC strict (mis. /kasir, /laporan): kalau role tidak sesuai → redirect
+ *   ke default route role-nya (silent — biar UX bersih)
+ * - RBAC display-with-error (mis. /dashboard/admin/*): kalau role tidak sesuai
+ *   → biarkan lewat (jangan redirect). Page itu sendiri akan render
+ *   "Access Denied" component dengan link kembali ke dashboard.
  *
- * Untuk sync role dari profiles → app_metadata, lihat:
- * sql/sync_role_to_app_metadata.sql
+ * Flag `allowDenyWithMessage` di `protected_routes_rbac` di bawah mengatur
+ * strategi mana yang dipakai per path.
  */
+const RBAC_REDIRECT_PATHS = [
+  // Path-path yang HARUS redirect kalau role tidak sesuai (UX ketat)
+  "/kasir",
+  "/buku-kas",
+  "/produk",
+  "/laporan",
+  "/ai-chat",
+  "/settings",
+];
+
+const RBAC_DENY_MESSAGE_PATHS = [
+  // Path-path yang lebih baik render "Access Denied" page
+  "/dashboard/admin",
+];
+
 export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
@@ -37,22 +53,39 @@ export async function middleware(request: NextRequest) {
       return Response.redirect(redirectUrl);
     }
 
-    // 3. RBAC check: ambil role dari user.app_metadata?.role
-    //    (Edge-compatible — tidak butuh DB query)
-    //    Default 'pemilik' untuk user yang belum di-sync role-nya
+    // 3. Baca role dari app_metadata (Edge-compatible)
     const role: UserRole =
       (user.app_metadata?.role as UserRole | undefined) ?? "pemilik";
 
+    // 4. Cek RBAC
     if (!canAccess(pathname, role)) {
-      const fallback = defaultRouteForRole(role);
-      console.log(
-        `[middleware] RBAC deny: user=${user.email} role=${role} path=${pathname} -> ${fallback}`
+      // 4a. Kalau path masuk kategori "deny with message" → biarkan lewat,
+      //     page akan render UI "Access Denied"
+      const isDenyWithMessage = RBAC_DENY_MESSAGE_PATHS.some(
+        (p) => pathname === p || pathname.startsWith(`${p}/`)
       );
-      return Response.redirect(new URL(fallback, request.url));
+      if (isDenyWithMessage) {
+        console.log(
+          `[middleware] RBAC deny (show message): user=${user.email} role=${role} path=${pathname}`
+        );
+        return response;
+      }
+
+      // 4b. Path RBAC strict → redirect ke default route role-nya
+      if (RBAC_REDIRECT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+        const fallback = defaultRouteForRole(role);
+        console.log(
+          `[middleware] RBAC deny (redirect): user=${user.email} role=${role} path=${pathname} -> ${fallback}`
+        );
+        return Response.redirect(new URL(fallback, request.url));
+      }
+
+      // 4c. Fallback: biarkan lewat (default route /dashboard tidak butuh role strict)
+      return response;
     }
   }
 
-  // 4. Root path '/': redirect ke landing publik
+  // 5. Root path '/': redirect ke landing publik
   if (pathname === "/") {
     return Response.redirect(new URL("/landing", request.url));
   }
