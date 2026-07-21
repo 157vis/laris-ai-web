@@ -19,16 +19,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-type Tx = {
-  id: string;
-  date: string;
-  type: "Pemasukan" | "Pengeluaran";
-  amount: number;
-  category: string | null;
-  note: string | null;
-  receipt_no: string | null;
-};
-
 export default async function LaporanPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -46,18 +36,6 @@ export default async function LaporanPage() {
   const reportRows: FullReportRow[] = clientId
     ? await getFullReport({ clientId })
     : [];
-
-  // Fallback kalau client_id belum ada (user baru signup)
-  let txs: Tx[] = [];
-  if (!clientId) {
-    const { data } = await supabase
-      .from("transactions")
-      .select("id, date, type, amount, category, note, receipt_no")
-      .eq("user_id", user.id)
-      .order("id", { ascending: false })
-      .limit(2000);
-    txs = (data ?? []) as Tx[];
-  }
 
   // Filter bulan ini
   const now = new Date();
