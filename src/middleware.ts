@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { canAccess, isProtectedRoute, isPublicRoute, defaultRouteForRole } from "@/lib/auth/rbac";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { UserRole } from "@/types/auth";
 
 /**
@@ -28,13 +29,31 @@ export async function middleware(request: NextRequest) {
       return Response.redirect(redirectUrl);
     }
 
-    // 3. RBAC check: ambil role dari user metadata
-    const role = (user.app_metadata?.role as UserRole | undefined) ?? "pemilik";
+    // 3. RBAC check: ambil role dari profiles table (lebih reliable
+    // daripada app_metadata, karena role sering berubah via admin panel)
+    let role: UserRole = "pemilik";
+    try {
+      const admin = createAdminClient();
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      role = (profile?.role as UserRole | undefined) ?? "pemilik";
+    } catch (err) {
+      // Fallback ke app_metadata kalau service-role belum diset
+      console.warn("[middleware] service-role unavailable, fallback to app_metadata:", err);
+      role = (user.app_metadata?.role as UserRole | undefined) ?? "pemilik";
+    }
 
     if (!canAccess(pathname, role)) {
       // Redirect ke default route role-nya (fallback aman)
       const fallback = defaultRouteForRole(role);
-      return Response.redirect(new URL(fallback, request.url));
+      const redirectUrl = new URL(fallback, request.url);
+      console.log(
+        `[middleware] RBAC deny: user=${user.email} role=${role} path=${pathname} → redirect ${fallback}`
+      );
+      return Response.redirect(redirectUrl);
     }
   }
 
