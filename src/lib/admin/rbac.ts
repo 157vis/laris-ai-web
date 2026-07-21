@@ -29,18 +29,79 @@ async function getCurrentUserId(): Promise<string | null> {
  * - Tidak ada session
  * - User tidak ditemukan di profiles table
  *
- * Tidak redirect — biarkan caller yang memutuskan mau render apa.
+ * PENTING: Middleware pakai app_metadata.role (Edge-compatible).
+ * Untuk konsistensi, kita cek dua sumber:
+ * 1. profiles.role (via service-role → paling reliable)
+ * 2. app_metadata.role (fallback kalau service-role belum diset)
  */
 export async function getCurrentAdminProfile(): Promise<UserProfile | null> {
-  const userId = await getCurrentUserId();
-  if (!userId) return null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
+  if (!user) return null;
+
+  const roleFromMeta = user.app_metadata?.role as string | undefined;
+
+  // Strategi 1: coba baca profiles via service-role (paling reliable)
   try {
     const admin = createAdminClient();
     const { data: profile } = await admin
       .from("profiles")
       .select("id, email, full_name, role, phone, industry, client_id, business_name, created_at")
-      .eq("id", userId)
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile) {
+      return {
+        id: profile.id,
+        email: profile.email,
+        fullName: profile.full_name ?? "User",
+        avatarUrl: null,
+        role: profile.role as UserProfile["role"],
+        businessName: profile.business_name ?? null,
+        createdAt: profile.created_at,
+      };
+    }
+
+    // Profile row belum ada — kemungkinan signup baru. Fallback ke app_metadata.
+    if (roleFromMeta) {
+      return {
+        id: user.id,
+        email: user.email ?? "",
+        fullName: (user.user_metadata?.full_name as string) ?? user.email ?? "User",
+        avatarUrl: null,
+        role: roleFromMeta as UserProfile["role"],
+        businessName: null,
+        createdAt: user.created_at,
+      };
+    }
+    return null;
+  } catch (err) {
+    // Service-role belum di-set → fallback ke app_metadata
+    console.warn(
+      "[admin] service-role unavailable, fallback to app_metadata.role:",
+      err instanceof Error ? err.message : err
+    );
+
+    if (roleFromMeta) {
+      return {
+        id: user.id,
+        email: user.email ?? "",
+        fullName: (user.user_metadata?.full_name as string) ?? user.email ?? "User",
+        avatarUrl: null,
+        role: roleFromMeta as UserProfile["role"],
+        businessName: null,
+        createdAt: user.created_at,
+      };
+    }
+
+    // Last resort: query profiles via anon client (RLS self_read izinkan ini)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, email, full_name, role, phone, industry, client_id, business_name, created_at")
+      .eq("id", user.id)
       .maybeSingle();
 
     if (!profile) return null;
@@ -54,9 +115,6 @@ export async function getCurrentAdminProfile(): Promise<UserProfile | null> {
       businessName: profile.business_name ?? null,
       createdAt: profile.created_at,
     };
-  } catch (err) {
-    console.warn("[admin] getCurrentAdminProfile error (service-role unavailable?):", err);
-    return null;
   }
 }
 
