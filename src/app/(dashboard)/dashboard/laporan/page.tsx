@@ -24,18 +24,15 @@ export default async function LaporanPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Ambil client_id dari profile
+  // Ambil profile (untuk full_name display)
   const { data: profile } = await supabase
     .from("profiles")
-    .select("client_id, full_name")
+    .select("full_name")
     .eq("id", user.id)
     .maybeSingle();
-  const clientId = profile?.client_id ?? null;
 
-  // Pakai view komprehensif (v_full_report) — 1 query ambil semua data + aging
-  const reportRows: FullReportRow[] = clientId
-    ? await getFullReport({ clientId })
-    : [];
+  // Pakai view komprehensif (v_full_report) — filter by user_id (UUID)
+  const reportRows: FullReportRow[] = await getFullReport({ userId: user.id });
 
   // Filter bulan ini
   const now = new Date();
@@ -98,14 +95,12 @@ export default async function LaporanPage() {
     end: todayDate,
   });
 
-  // Ambil client name
-  const { data: client } = clientId
-    ? await supabase
-        .from("clients")
-        .select("name")
-        .eq("client_id", clientId)
-        .maybeSingle()
-    : { data: null };
+  // Ambil client name (cari via owner_user_id = user.id)
+  const { data: client } = await supabase
+    .from("clients")
+    .select("name")
+    .eq("owner_user_id", user.id)
+    .maybeSingle();
 
   const displayName = client?.name ?? profile?.full_name ?? "Toko Saya";
 
