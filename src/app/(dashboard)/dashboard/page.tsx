@@ -22,6 +22,7 @@ import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { TopProducts } from "@/components/dashboard/top-products";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getDashboardStats } from "@/lib/dashboard/queries";
 import { formatIDR } from "@/lib/format";
 import { waLink } from "@/lib/whatsapp";
@@ -60,13 +61,26 @@ export default async function DashboardPage() {
     user.email?.split("@")[0] ||
     "Pengguna";
 
-  // Fetch role untuk admin shortcut
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-  const userRole = (profile?.role as string) ?? "pemilik";
+  // Fetch role untuk admin shortcut — pakai service-role client (bypass RLS)
+  let userRole: string = "pemilik";
+  try {
+    const adminClient = createAdminClient();
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    userRole = (profile?.role as string) ?? "pemilik";
+  } catch (err) {
+    // Fallback ke anon client kalau service-role belum di-set
+    console.warn("[dashboard] service-role not available, falling back to anon:", err);
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    userRole = (profile?.role as string) ?? "pemilik";
+  }
 
   return (
     <div className="space-y-6">
