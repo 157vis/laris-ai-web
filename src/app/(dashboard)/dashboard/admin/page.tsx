@@ -77,7 +77,7 @@ export default async function AdminConsolePage() {
           </div>
           <div>
             <p className="text-sm text-white/80">Selamat datang, Super Admin</p>
-            <p className="text-2xl font-bold">{admin.fullName}</p>
+            <p className="text-2xl font-bold">{adminProfile.fullName}</p>
           </div>
         </div>
         <p className="mt-3 text-sm text-white/70">
