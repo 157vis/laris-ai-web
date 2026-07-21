@@ -1,12 +1,21 @@
 import { type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { canAccess, isProtectedRoute, isPublicRoute, defaultRouteForRole } from "@/lib/auth/rbac";
-import { createAdminClient } from "@/lib/supabase/admin";
 import type { UserRole } from "@/types/auth";
 
 /**
  * Middleware utama: handle Supabase session refresh + RBAC route protection.
- * Ref: bukuwarung-ai/README.md (multi-role system)
+ *
+ * CATATAN PENTING: Middleware Vercel jalan di Edge Runtime.
+ * `@supabase/supabase-js` (createAdminClient) TIDAK kompatibel dengan Edge
+ * (butuh Node.js APIs). Jadi kita pakai alternatif:
+ * 1. Baca role dari user.app_metadata?.role (default fallback: 'pemilik')
+ * 2. Middleware ini CEGAH akses route yang butuh role spesifik
+ * 3. Server component / page itu sendiri verify role via service-role
+ *    (lib/admin/rbac.ts → requireAdmin() — yang Node.js compatible)
+ *
+ * Untuk sync role dari profiles → app_metadata, lihat:
+ * sql/sync_role_to_app_metadata.sql
  */
 export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
@@ -14,7 +23,6 @@ export async function middleware(request: NextRequest) {
 
   // 1. Route publik: biarkan lewat
   if (isPublicRoute(pathname)) {
-    // Jika user SUDAH login & akses halaman login/register, redirect ke dashboard
     if (user && (pathname === "/login" || pathname === "/register")) {
       return Response.redirect(new URL("/dashboard", request.url));
     }
@@ -29,31 +37,18 @@ export async function middleware(request: NextRequest) {
       return Response.redirect(redirectUrl);
     }
 
-    // 3. RBAC check: ambil role dari profiles table (lebih reliable
-    // daripada app_metadata, karena role sering berubah via admin panel)
-    let role: UserRole = "pemilik";
-    try {
-      const admin = createAdminClient();
-      const { data: profile } = await admin
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-      role = (profile?.role as UserRole | undefined) ?? "pemilik";
-    } catch (err) {
-      // Fallback ke app_metadata kalau service-role belum diset
-      console.warn("[middleware] service-role unavailable, fallback to app_metadata:", err);
-      role = (user.app_metadata?.role as UserRole | undefined) ?? "pemilik";
-    }
+    // 3. RBAC check: ambil role dari user.app_metadata?.role
+    //    (Edge-compatible — tidak butuh DB query)
+    //    Default 'pemilik' untuk user yang belum di-sync role-nya
+    const role: UserRole =
+      (user.app_metadata?.role as UserRole | undefined) ?? "pemilik";
 
     if (!canAccess(pathname, role)) {
-      // Redirect ke default route role-nya (fallback aman)
       const fallback = defaultRouteForRole(role);
-      const redirectUrl = new URL(fallback, request.url);
       console.log(
-        `[middleware] RBAC deny: user=${user.email} role=${role} path=${pathname} → redirect ${fallback}`
+        `[middleware] RBAC deny: user=${user.email} role=${role} path=${pathname} -> ${fallback}`
       );
-      return Response.redirect(redirectUrl);
+      return Response.redirect(new URL(fallback, request.url));
     }
   }
 
