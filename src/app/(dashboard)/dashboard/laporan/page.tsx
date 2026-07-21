@@ -54,13 +54,18 @@ export default async function LaporanPage() {
   // Group by category
   const byCategoryMap: Record<
     string,
-    { count: number; total: number; type: "Pemasukan" | "Pengeluaran" }
+    {
+      count: number;
+      total: number;
+      type: "Pemasukan" | "Pengeluaran";
+      category: string;
+    }
   > = {};
   for (const t of monthRows) {
     const cat = t.category ?? "Tanpa Kategori";
     const key = `${t.type}|${cat}`;
     if (!byCategoryMap[key]) {
-      byCategoryMap[key] = { count: 0, total: 0, type: t.type };
+      byCategoryMap[key] = { count: 0, total: 0, type: t.type, category: cat };
     }
     byCategoryMap[key].count += 1;
     byCategoryMap[key].total += Number(t.amount ?? 0);
