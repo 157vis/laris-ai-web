@@ -244,23 +244,25 @@ export default async function DashboardPage() {
       </p>
 
       {/* Quick action — Lanjut FASE 4 */}
-      <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
-            <Sparkles className="h-5 w-5" />
-            Lanjut FASE 4
-          </CardTitle>
-          <CardDescription>CRUD buku kas & produk + barcode scanner</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button asChild className="w-full" variant="default">
-            <Link href="/dashboard/kas">
-              Mulai FASE 4
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      {false && (
+        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+              <Sparkles className="h-5 w-5" />
+              Lanjut FASE 4
+            </CardTitle>
+            <CardDescription>CRUD buku kas & produk + barcode scanner</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full" variant="default">
+              <Link href="/dashboard/kas">
+                Mulai FASE 4
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Link to admin console (kalau user admin) */}
       {userRole === "admin" && (

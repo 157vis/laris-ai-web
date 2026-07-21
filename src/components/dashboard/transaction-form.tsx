@@ -38,6 +38,10 @@ export function TransactionForm({ products, action }: TransactionFormProps) {
   const [type, setType] = useState<"Pemasukan" | "Pengeluaran">("Pemasukan");
   const [category, setCategory] = useState("");
   const [isPrive, setIsPrive] = useState(false);
+  const [isPiutang, setIsPiutang] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [selectedProductId, setSelectedProductId] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -101,6 +105,18 @@ export function TransactionForm({ products, action }: TransactionFormProps) {
     formData.set("type", type);
     formData.set("category", category);
     formData.set("is_prive", String(isPrive));
+
+    // Piutang fields (only if enabled)
+    if (isPiutang && type === "Pemasukan") {
+      if (!customerName.trim()) {
+        toast.error("Nama customer wajib diisi untuk piutang");
+        return;
+      }
+      formData.set("is_piutang", "true");
+      formData.set("customer_name", customerName);
+      formData.set("customer_phone", customerPhone);
+      if (dueDate) formData.set("due_date", dueDate);
+    }
 
     startTransition(async () => {
       try {
@@ -297,7 +313,63 @@ export function TransactionForm({ products, action }: TransactionFormProps) {
                 Transaksi Prive (pengambilan pribadi, tidak masuk bisnis)
               </Label>
             </div>
+            {type === "Pemasukan" && (
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  id="is_piutang"
+                  checked={isPiutang}
+                  onChange={(e) => setIsPiutang(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="is_piutang" className="cursor-pointer">
+                  💳 Catat sebagai Piutang (customer bayar nanti)
+                </Label>
+              </div>
+            )}
           </div>
+
+          {/* Piutang fields (conditional) */}
+          {isPiutang && type === "Pemasukan" && (
+            <div className="space-y-4 rounded-lg border-2 border-dashed border-amber-300 bg-amber-50/30 p-4 dark:bg-amber-950/20">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                📝 Data Customer (Piutang)
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="customer_name">Nama Customer *</Label>
+                  <Input
+                    id="customer_name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="cth: Pak Budi"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customer_phone">No HP / WA</Label>
+                  <Input
+                    id="customer_phone"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="cth: 08123456789"
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="due_date">Jatuh Tempo (opsional)</Label>
+                  <Input
+                    id="due_date"
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Bisa dikosongkan — akan dihitung manual nanti. Aging otomatis setelah di-set.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

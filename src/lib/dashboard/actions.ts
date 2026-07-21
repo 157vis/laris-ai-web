@@ -246,6 +246,10 @@ export async function createTransaction(formData: FormData) {
     String(now.getMinutes()).padStart(2, "0");
 
   // 1) Insert transaction
+  const isPiutang = formData.get("is_piutang") === "true";
+  const piutangStatus = isPiutang ? "unpaid" : null;
+  const amountPaid = 0; // piutang baru = belum dibayar
+
   const { data: tx, error: txError } = await supabase
     .from("transactions")
     .insert({
@@ -253,8 +257,15 @@ export async function createTransaction(formData: FormData) {
       date: dateStr,
       type: parsed.type,
       amount: parsed.total,
+      amount_paid: amountPaid,
       category,
       note: noteFull,
+      customer_name: isPiutang ? (formData.get("customer_name") as string) : null,
+      customer_phone: isPiutang ? (formData.get("customer_phone") as string) : null,
+      due_date: isPiutang && formData.get("due_date")
+        ? (formData.get("due_date") as string)
+        : null,
+      piutang_status: piutangStatus,
       receipt_no: receiptNo,
       running_balance: newBalance,
       is_prive: parsed.is_prive,
