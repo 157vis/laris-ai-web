@@ -15,10 +15,14 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }> | { id: string };
+  searchParams?: Promise<{ warning?: string }> | { warning?: string };
+};
 
-export default async function KasDetailPage({ params }: Props) {
+export default async function KasDetailPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { warning } = (await searchParams) ?? {};
   const supabase = await createClient();
   const {
     data: { user },
@@ -58,6 +62,21 @@ export default async function KasDetailPage({ params }: Props) {
           Cetak Struk
         </Button>
       </div>
+
+      {warning === "stock" && (
+        <div
+          role="alert"
+          className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100"
+        >
+          <p className="font-semibold">Transaksi tersimpan, tetapi stok belum sepenuhnya tersinkron.</p>
+          <p className="mt-1">
+            Jangan buat ulang transaksi ini. Periksa stok produk dan sesuaikan secara manual bila perlu.
+          </p>
+          <Link href="/dashboard/produk" className="mt-2 inline-block font-medium underline">
+            Periksa produk
+          </Link>
+        </div>
+      )}
 
       {/* Success banner */}
       <div

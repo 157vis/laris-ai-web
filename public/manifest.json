@@ -41,19 +41,19 @@
     {
       "name": "Catat Penjualan",
       "short_name": "Kasir",
-      "url": "/kasir",
+      "url": "/dashboard/kas/new",
       "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Buku Kas",
       "short_name": "Kas",
-      "url": "/buku-kas",
+      "url": "/dashboard/kas",
       "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Laporan",
       "short_name": "Laporan",
-      "url": "/laporan",
+      "url": "/dashboard/laporan",
       "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     }
   ],

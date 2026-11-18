@@ -16,6 +16,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { defaultRouteForRole, isUserRole } from "@/lib/auth/rbac";
+import type { UserRole } from "@/types/auth";
 
 // ============ VALIDATION SCHEMAS ============
 
@@ -29,11 +31,8 @@ const productSchema = z.object({
 });
 
 const transactionItemSchema = z.object({
-  product_id: z.coerce.number().int().optional().nullable(),
-  name: z.string().min(1),
+  product_id: z.coerce.number().int().positive(),
   quantity: z.coerce.number().int().min(1),
-  price: z.coerce.number().min(0),
-  subtotal: z.coerce.number().min(0),
 });
 
 const transactionSchema = z.object({
@@ -43,9 +42,26 @@ const transactionSchema = z.object({
   type: z.enum(["Pemasukan", "Pengeluaran"]).default("Pemasukan"),
   category: z.string().max(50).optional().nullable(),
   items: z.array(transactionItemSchema).min(1, "Minimal 1 item"),
-  total: z.coerce.number().min(0),
   is_prive: z.coerce.boolean().default(false),
 });
+
+const PRODUCT_ROLES = ["admin", "pemilik"] as const satisfies readonly UserRole[];
+const TRANSACTION_ROLES = ["admin", "kasir", "pemilik", "anggota_koperasi"] as const satisfies readonly UserRole[];
+
+async function requireActionUser(allowedRoles: readonly UserRole[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const role: unknown = user.app_metadata?.role;
+  if (!isUserRole(role)) redirect("/access-denied");
+  if (!allowedRoles.includes(role)) redirect(defaultRouteForRole(role));
+
+  return { supabase, user };
+}
 
 /**
  * Generate receipt_no otomatis.
@@ -95,11 +111,7 @@ async function getLastRunningBalance(
 // ============ PRODUCT ACTIONS ============
 
 export async function createProduct(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireActionUser(PRODUCT_ROLES);
 
   const parsed = productSchema.parse({
     name: formData.get("name"),
@@ -121,11 +133,7 @@ export async function createProduct(formData: FormData) {
 }
 
 export async function updateProduct(id: string, formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireActionUser(PRODUCT_ROLES);
 
   const parsed = productSchema.parse({
     name: formData.get("name"),
@@ -149,11 +157,7 @@ export async function updateProduct(id: string, formData: FormData) {
 }
 
 export async function deleteProduct(id: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireActionUser(PRODUCT_ROLES);
 
   const { error } = await supabase
     .from("products")
@@ -166,11 +170,7 @@ export async function deleteProduct(id: string) {
 }
 
 export async function adjustStock(id: string, delta: number) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireActionUser(PRODUCT_ROLES);
 
   // Ambil stok saat ini
   const { data: prod } = await supabase
@@ -197,40 +197,86 @@ export async function adjustStock(id: string, delta: number) {
 // ============ TRANSACTION ACTIONS ============
 
 export async function createTransaction(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireActionUser(TRANSACTION_ROLES);
 
-  // Parse items JSON
-  const itemsJson = formData.get("items") as string;
-  const items = JSON.parse(itemsJson);
+  const itemsValue = formData.get("items");
+  if (typeof itemsValue !== "string") throw new Error("Daftar item tidak valid");
+
+  let items: unknown;
+  try {
+    items = JSON.parse(itemsValue);
+  } catch {
+    throw new Error("Daftar item tidak valid");
+  }
 
   const parsed = transactionSchema.parse({
     note: formData.get("note") || null,
     type: formData.get("type") || "Pemasukan",
     category: formData.get("category") || null,
     items,
-    total: formData.get("total") || 0,
     is_prive: formData.get("is_prive") === "true",
   });
 
-  // === ADAPTASI: Karena tidak ada transaction_items, kita collapse ke 1 row
-  // Ambil item pertama sebagai representative
-  const firstItem = parsed.items[0];
-  const category = parsed.category || firstItem?.name || "Penjualan";
+  const productIds = parsed.items.map((item) => item.product_id);
+  if (new Set(productIds).size !== productIds.length) {
+    throw new Error("Produk yang sama tidak boleh dikirim lebih dari sekali");
+  }
+
+  const { data: products, error: productError } = await supabase
+    .from("products")
+    .select("id, name, price, stock")
+    .eq("user_id", user.id)
+    .in("id", productIds);
+
+  if (productError) throw new Error("Produk gagal diverifikasi. Coba lagi.");
+
+  const productById = new Map(
+    (products ?? []).map((product) => [Number(product.id), product])
+  );
+  if (productById.size !== productIds.length) {
+    throw new Error("Satu atau beberapa produk tidak ditemukan");
+  }
+
+  const verifiedItems = parsed.items.map((item) => {
+    const product = productById.get(item.product_id);
+    if (!product) throw new Error("Produk tidak ditemukan");
+
+    const price = Number(product.price ?? 0);
+    const stock = Number(product.stock ?? 0);
+    if (!Number.isFinite(price) || price < 0) {
+      throw new Error(`Harga ${product.name} tidak valid`);
+    }
+    if (parsed.type === "Pemasukan" && item.quantity > stock) {
+      throw new Error(`Stok ${product.name} tidak cukup`);
+    }
+
+    return {
+      product_id: item.product_id,
+      name: product.name,
+      quantity: item.quantity,
+      price,
+      stock,
+      originalStock: product.stock,
+      subtotal: item.quantity * price,
+    };
+  });
+
+  const total = verifiedItems.reduce((sum, item) => sum + item.subtotal, 0);
+  if (!Number.isFinite(total)) throw new Error("Total transaksi tidak valid");
+
+  const firstItem = verifiedItems[0];
+  const category = parsed.category || firstItem.name || "Penjualan";
   const noteFull =
     parsed.note ||
-    (parsed.items.length === 1
+    (verifiedItems.length === 1
       ? `${firstItem.name} (${firstItem.quantity}x)`
-      : `${parsed.items.length} item: ${parsed.items.map((i) => i.name).join(", ")}`);
+      : `${verifiedItems.length} item: ${verifiedItems.map((item) => item.name).join(", ")}`);
 
   // Hitung receipt_no & running_balance
   const receiptNo = await generateReceiptNo(supabase, user.id, parsed.type);
   const lastBalance = await getLastRunningBalance(supabase, user.id);
   const newBalance =
-    parsed.type === "Pemasukan" ? lastBalance + parsed.total : lastBalance - parsed.total;
+    parsed.type === "Pemasukan" ? lastBalance + total : lastBalance - total;
 
   // Format date 'YYYY-MM-DD HH:MM' (schema existing)
   const now = new Date();
@@ -246,7 +292,31 @@ export async function createTransaction(formData: FormData) {
     String(now.getMinutes()).padStart(2, "0");
 
   // 1) Insert transaction
-  const isPiutang = formData.get("is_piutang") === "true";
+  const isPiutang =
+    parsed.type === "Pemasukan" && formData.get("is_piutang") === "true";
+  const customerNameValue = formData.get("customer_name");
+  if (isPiutang && (typeof customerNameValue !== "string" || !customerNameValue.trim())) {
+    throw new Error("Nama customer wajib diisi untuk piutang");
+  }
+
+  const customerName =
+    isPiutang && typeof customerNameValue === "string" ? customerNameValue.trim() : null;
+  const customerPhoneValue = formData.get("customer_phone");
+  const customerPhone =
+    isPiutang && typeof customerPhoneValue === "string" && customerPhoneValue.trim()
+      ? customerPhoneValue.trim()
+      : null;
+  const dueDateValue = formData.get("due_date");
+  const hasDueDate = typeof dueDateValue === "string" && dueDateValue.length > 0;
+  const validDueDate =
+    typeof dueDateValue === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(dueDateValue) &&
+    !Number.isNaN(Date.parse(`${dueDateValue}T00:00:00.000Z`)) &&
+    new Date(`${dueDateValue}T00:00:00.000Z`).toISOString().slice(0, 10) === dueDateValue;
+  if (isPiutang && hasDueDate && !validDueDate) {
+    throw new Error("Tanggal jatuh tempo tidak valid");
+  }
+  const dueDate = isPiutang && validDueDate ? dueDateValue : null;
   const piutangStatus = isPiutang ? "unpaid" : null;
   const amountPaid = 0; // piutang baru = belum dibayar
 
@@ -256,15 +326,13 @@ export async function createTransaction(formData: FormData) {
       user_id: user.id,
       date: dateStr,
       type: parsed.type,
-      amount: parsed.total,
-      amount_paid: amountPaid,
+      amount: total,
+      amount_paid: isPiutang ? amountPaid : total,
       category,
       note: noteFull,
-      customer_name: isPiutang ? (formData.get("customer_name") as string) : null,
-      customer_phone: isPiutang ? (formData.get("customer_phone") as string) : null,
-      due_date: isPiutang && formData.get("due_date")
-        ? (formData.get("due_date") as string)
-        : null,
+      customer_name: isPiutang ? customerName : null,
+      customer_phone: isPiutang ? customerPhone : null,
+      due_date: isPiutang ? dueDate : null,
       piutang_status: piutangStatus,
       receipt_no: receiptNo,
       running_balance: newBalance,
@@ -275,35 +343,45 @@ export async function createTransaction(formData: FormData) {
 
   if (txError || !tx) throw new Error(txError?.message ?? "Gagal membuat transaksi");
 
-  // 2) Kurangi stok untuk setiap item (jika product_id valid)
-  for (const it of parsed.items) {
-    if (it.product_id) {
-      const { data: prod } = await supabase
-        .from("products")
-        .select("stock")
-        .eq("id", it.product_id)
-        .single();
+  // Penjualan mengurangi stok; pembelian barang menambah stok.
+  let stockSyncFailed = false;
+  for (const item of verifiedItems) {
+    const stockDelta = parsed.type === "Pemasukan" ? -item.quantity : item.quantity;
+    let stockUpdate = supabase
+      .from("products")
+      .update({ stock: item.stock + stockDelta })
+      .eq("id", item.product_id)
+      .eq("user_id", user.id);
+    stockUpdate =
+      item.originalStock === null
+        ? stockUpdate.is("stock", null)
+        : stockUpdate.eq("stock", item.originalStock);
 
-      if (prod) {
-        await supabase
-          .from("products")
-          .update({ stock: Math.max(0, (prod.stock ?? 0) - it.quantity) })
-          .eq("id", it.product_id);
-      }
+    const { data: updatedProduct, error: stockError } = await stockUpdate
+      .select("id")
+      .maybeSingle();
+
+    if (stockError || !updatedProduct) {
+      console.error("[transactions] stock update failed", {
+        transactionId: tx.id,
+        productId: item.product_id,
+      });
+      stockSyncFailed = true;
+      break;
     }
   }
 
   revalidatePath("/dashboard/kas");
   revalidatePath("/dashboard");
-  redirect(`/dashboard/kas/${tx.id}`);
+  redirect(
+    stockSyncFailed
+      ? `/dashboard/kas/${tx.id}?warning=stock`
+      : `/dashboard/kas/${tx.id}`
+  );
 }
 
 export async function deleteTransaction(id: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, user } = await requireActionUser(TRANSACTION_ROLES);
 
   const { error } = await supabase
     .from("transactions")

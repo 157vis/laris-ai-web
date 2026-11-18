@@ -12,9 +12,15 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return { response, user: null, supabase: null };
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -38,9 +44,13 @@ export async function updateSession(request: NextRequest) {
   );
 
   // PENTING: panggil getUser() agar session Supabase ter-refresh di server.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return { response, user, supabase };
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return { response, user, supabase };
+  } catch {
+    console.error("[auth] session validation failed");
+    return { response, user: null, supabase };
+  }
 }

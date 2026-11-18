@@ -213,20 +213,9 @@ export function TransactionForm({ products, action }: TransactionFormProps) {
                       className="w-20 text-center"
                     />
                     <span className="text-xs text-muted-foreground">×</span>
-                    <Input
-                      type="number"
-                      min={0}
-                      step={100}
-                      value={item.price}
-                      onChange={(e) =>
-                        updateItem(
-                          item.product_id,
-                          item.quantity,
-                          Math.max(0, Number(e.target.value) || 0)
-                        )
-                      }
-                      className="w-28 text-right"
-                    />
+                    <span className="w-28 text-right text-sm tabular-nums">
+                      {formatIDR(item.price)}
+                    </span>
                     <span className="hidden w-24 text-right text-sm font-bold sm:block">
                       {formatIDR(item.subtotal)}
                     </span>

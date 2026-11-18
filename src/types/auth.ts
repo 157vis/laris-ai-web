@@ -22,11 +22,10 @@ export interface RouteAccess {
 export const ROUTE_ACCESS: RouteAccess[] = [
   { path: "/dashboard", allowedRoles: ["admin", "pemilik"] },
   { path: "/dashboard/admin", allowedRoles: ["admin"] },
-  { path: "/kasir", allowedRoles: ["admin", "kasir", "pemilik"] },
-  { path: "/buku-kas", allowedRoles: ["admin", "pemilik", "anggota_koperasi"] },
-  { path: "/produk", allowedRoles: ["admin", "pemilik"] },
-  { path: "/laporan", allowedRoles: ["admin", "pemilik"] },
-  { path: "/ai-chat", allowedRoles: ["admin", "kasir", "pemilik", "anggota_koperasi"] },
+  { path: "/dashboard/kas", allowedRoles: ["admin", "kasir", "pemilik", "anggota_koperasi"] },
+  { path: "/dashboard/produk", allowedRoles: ["admin", "pemilik"] },
+  { path: "/dashboard/laporan", allowedRoles: ["admin", "pemilik"] },
+  { path: "/dashboard/ai-chat", allowedRoles: ["admin", "kasir", "pemilik", "anggota_koperasi"] },
   { path: "/settings", allowedRoles: ["admin", "kasir", "pemilik", "anggota_koperasi"] },
 ];
 

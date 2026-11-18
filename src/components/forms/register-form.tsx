@@ -70,31 +70,51 @@ export function RegisterForm() {
       ? phoneNormalized
       : `62${phoneNormalized}`;
 
-    const supabase = createClient();
-
-    // 1) Sign up di auth.users
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName.trim(),
-          business_name: businessName.trim(),
-          phone: phoneFonnte,
-          industry,
-          // Default role untuk UMKM baru: pemilik (atau anggota_koperasi jika koperasi)
-          role:
-            industry === "koperasi"
-              ? ("anggota_koperasi" satisfies UserRole)
-              : ("pemilik" satisfies UserRole),
+    let supabase: ReturnType<typeof createClient>;
+    let signUpResult: Awaited<
+      ReturnType<ReturnType<typeof createClient>["auth"]["signUp"]>
+    >;
+    try {
+      supabase = createClient();
+      signUpResult = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+            business_name: businessName.trim(),
+            phone: phoneFonnte,
+            industry,
+            // Default role untuk UMKM baru: pemilik (atau anggota_koperasi jika koperasi)
+            role:
+              industry === "koperasi"
+                ? ("anggota_koperasi" satisfies UserRole)
+                : ("pemilik" satisfies UserRole),
+          },
+          emailRedirectTo:
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
+            `${window.location.origin}/auth/callback`,
         },
-        emailRedirectTo: `${window.location.origin}/login`,
-      },
-    });
+      });
+    } catch {
+      const message = "Layanan pendaftaran sedang bermasalah. Coba lagi beberapa saat.";
+      setError(message);
+      toast.error("Gagal daftar", { description: message });
+      return;
+    }
 
+    const { data, error: signUpError } = signUpResult;
     if (signUpError) {
-      setError(signUpError.message);
-      toast.error("Gagal daftar", { description: signUpError.message });
+      const message =
+        signUpError.code === "weak_password"
+          ? "Password terlalu lemah. Gunakan minimal 8 karakter."
+          : signUpError.code === "email_address_invalid"
+            ? "Masukkan alamat email yang valid."
+            : signUpError.code === "over_email_send_rate_limit"
+              ? "Terlalu banyak permintaan email. Tunggu sebentar lalu coba lagi."
+              : "Pendaftaran tidak dapat diproses. Periksa data Anda atau coba lagi.";
+      setError(message);
+      toast.error("Gagal daftar", { description: message });
       return;
     }
 
