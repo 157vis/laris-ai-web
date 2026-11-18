@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-import { defaultRouteForRole } from "@/lib/auth/rbac";
-import type { UserRole } from "@/types/auth";
+import { canAccess, defaultRouteForRole, isUserRole } from "@/lib/auth/rbac";
 
 /**
  * Form login dengan Supabase Auth.
@@ -24,7 +23,11 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    searchParams.get("error") === "auth_callback"
+      ? "Tautan verifikasi tidak valid atau sudah kedaluwarsa. Silakan minta tautan baru."
+      : null
+  );
   const [isPending, startTransition] = useTransition();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -36,19 +39,29 @@ export function LoginForm() {
       return;
     }
 
-    const supabase = createClient();
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    let signInResult: Awaited<
+      ReturnType<ReturnType<typeof createClient>["auth"]["signInWithPassword"]>
+    >;
+    try {
+      const supabase = createClient();
+      signInResult = await supabase.auth.signInWithPassword({ email, password });
+    } catch {
+      const message = "Layanan login sedang bermasalah. Coba lagi beberapa saat.";
+      setError(message);
+      toast.error("Gagal masuk", { description: message });
+      return;
+    }
 
+    const { data, error: signInError } = signInResult;
     if (signInError) {
-      const msg =
-        signInError.message === "Invalid login credentials"
-          ? "Email atau password salah. Coba lagi ya."
-          : signInError.message;
-      setError(msg);
-      toast.error("Gagal masuk", { description: msg });
+      const message =
+        signInError.code === "email_not_confirmed"
+          ? "Konfirmasi email Anda sebelum masuk. Periksa kotak masuk dan folder spam."
+          : signInError.code === "over_request_rate_limit"
+            ? "Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi."
+            : "Email atau password salah. Coba lagi.";
+      setError(message);
+      toast.error("Gagal masuk", { description: message });
       return;
     }
 
@@ -61,8 +74,27 @@ export function LoginForm() {
 
     startTransition(() => {
       // Tentukan redirect: param ?redirectTo, atau default sesuai role
-      const role = (data.user.app_metadata?.role as UserRole | undefined) ?? "pemilik";
-      const target = redirectTo || defaultRouteForRole(role);
+      const rawRole: unknown = data.user.app_metadata?.role;
+      if (!isUserRole(rawRole)) {
+        router.push("/access-denied");
+        router.refresh();
+        return;
+      }
+
+      let target = defaultRouteForRole(rawRole);
+      if (redirectTo) {
+        try {
+          const requestedUrl = new URL(redirectTo, window.location.origin);
+          if (
+            requestedUrl.origin === window.location.origin &&
+            canAccess(requestedUrl.pathname, rawRole)
+          ) {
+            target = `${requestedUrl.pathname}${requestedUrl.search}${requestedUrl.hash}`;
+          }
+        } catch {
+          // Ignore malformed or external return URLs and use the role's home page.
+        }
+      }
       router.push(target);
       router.refresh();
     });
