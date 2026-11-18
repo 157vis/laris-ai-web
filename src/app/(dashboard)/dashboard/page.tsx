@@ -85,14 +85,14 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
-      <div className="rounded-2xl bg-gradient-to-br from-emerald-500 via-brand-500 to-brand-700 p-6 text-white shadow-lg sm:p-8">
+      <div className="rounded-2xl bg-primary p-6 text-primary-foreground shadow-lg sm:p-8">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <Badge className="mb-2 border-white/30 bg-white/20 text-white hover:bg-white/30">
-              FASE 3: Dashboard Kasir 🚀
+            <Badge className="mb-2 border-white/20 bg-white/10 text-white hover:bg-white/15">
+              Ringkasan usaha
             </Badge>
             <h1 className="text-2xl font-bold sm:text-3xl">
-              Hai, {userName}! 👋
+              Hai, {userName}
             </h1>
             <p className="mt-2 text-sm text-white/90 sm:text-base">
               {stats.todayTransactions > 0
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
       {/* Quick action bar */}
       <Card className="border-brand-200 bg-gradient-to-r from-brand-50 to-emerald-50 dark:border-brand-900/40 dark:from-brand-950/30 dark:to-emerald-950/20">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">⚡ Aksi Cepat</CardTitle>
+          <CardTitle className="text-base">Aksi cepat</CardTitle>
           <CardDescription>Catat transaksi dalam 10 detik via WhatsApp</CardDescription>
         </CardHeader>
         <CardContent>

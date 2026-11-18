@@ -21,7 +21,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Laris.AI — Aset AI untuk UMKM Indonesia",
+    default: "Laris.AI — Kasir pintar untuk UMKM Indonesia",
     template: "%s | Laris.AI",
   },
   description:
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     locale: "id_ID",
     url: SITE_URL,
     siteName: "Laris.AI",
-    title: "Laris.AI — Aset AI untuk UMKM Indonesia",
+    title: "Laris.AI — Kasir pintar untuk UMKM Indonesia",
     description:
       "Catat penjualan, kelola stok, dan lapor KUR otomatis lewat WhatsApp.",
   },
@@ -63,8 +63,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#10b981" },
-    { media: "(prefers-color-scheme: dark)", color: "#064e3b" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f4ec" },
+    { media: "(prefers-color-scheme: dark)", color: "#12352a" },
   ],
   width: "device-width",
   initialScale: 1,
