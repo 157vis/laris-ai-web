@@ -22,7 +22,7 @@ export function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-svh bg-muted/30">
+    <div className="min-h-svh bg-background">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-border/70 bg-card lg:block">
         <Sidebar role={user.role} />
       </aside>

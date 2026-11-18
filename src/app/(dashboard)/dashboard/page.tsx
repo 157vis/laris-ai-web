@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
@@ -85,58 +84,61 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="relative isolate overflow-hidden rounded-[1.75rem] bg-brand-900 p-6 text-white shadow-lg shadow-brand-900/10 sm:p-8">
-        <div className="pointer-events-none absolute -right-20 -top-28 size-72 rounded-full border border-white/10" aria-hidden="true" />
-        <div className="pointer-events-none absolute -bottom-36 right-24 size-64 rounded-full border border-white/10" aria-hidden="true" />
-        <div className="relative flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-2xl">
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge className="border-white/15 bg-white/10 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/10">
-                <Sparkles className="mr-1.5 size-3" />
-                Ringkasan usaha
-              </Badge>
-              <span className="flex items-center gap-1.5 text-xs font-medium text-white/70">
-                <CalendarDays className="size-3.5" />
-                {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
-              </span>
-            </div>
-            <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl">
-              Halo, {userName}
-            </h1>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/75 sm:text-base">
-              {stats.todayTransactions > 0
-                ? `Hari ini ada ${stats.todayTransactions} transaksi. Berikut ringkasan yang membantu Anda menjaga usaha tetap lancar.`
-                : "Belum ada transaksi hari ini. Mulai catat penjualan agar perkembangan usaha terlihat jelas."}
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button asChild size="lg" variant="secondary" className="rounded-xl px-4 font-semibold">
-                <Link href="/dashboard/kas/new">
-                  <Plus data-icon="inline-start" />
-                  Catat transaksi
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="rounded-xl border-white/20 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white">
-                <a
-                  href={waLink("Halo Admin Laris.AI, saya mau catat transaksi")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Mic data-icon="inline-start" />
-                  Catat via WhatsApp
-                </a>
-              </Button>
-            </div>
+      <section className="flex flex-col gap-5 rounded-3xl border border-border/70 bg-card p-5 shadow-sm sm:p-7 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
+            <span className="flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 text-brand-800 dark:bg-brand-950/50 dark:text-brand-200">
+              <Sparkles className="size-3.5" />
+              Ringkasan usaha
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CalendarDays className="size-3.5" />
+              {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
+            </span>
           </div>
-          <div className="w-full rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm xl:max-w-xs">
-            <p className="text-xs font-medium text-white/70">Pemasukan hari ini</p>
-            <p className="mt-2 text-3xl font-bold tracking-tight">{formatIDR(stats.todayRevenue)}</p>
-            <div className="mt-4 flex items-center gap-2 border-t border-white/15 pt-3 text-xs text-white/75">
-              <span className="flex size-6 items-center justify-center rounded-full bg-white/10">
-                <Receipt className="size-3.5" />
-              </span>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Halo, {userName}</h1>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            {stats.todayTransactions > 0
+              ? `Ada ${stats.todayTransactions} transaksi hari ini. Berikut kondisi usaha Anda saat ini.`
+              : "Belum ada transaksi hari ini. Catat penjualan pertama untuk mulai memantau usaha."}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button asChild size="lg" className="rounded-xl px-4 font-semibold shadow-sm">
+            <Link href="/dashboard/kas/new">
+              <Plus data-icon="inline-start" />
+              Catat transaksi
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="rounded-xl px-4">
+            <a
+              href={waLink("Halo Admin Laris.AI, saya mau catat transaksi")}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Mic data-icon="inline-start" />
+              WhatsApp
+            </a>
+          </Button>
+        </div>
+      </section>
+
+      <section aria-label="Pemasukan hari ini" className="relative overflow-hidden rounded-3xl bg-brand-900 p-5 text-white shadow-lg shadow-brand-900/10 sm:p-6">
+        <div className="pointer-events-none absolute -right-12 -top-20 size-56 rounded-full border border-white/10" aria-hidden="true" />
+        <div className="pointer-events-none absolute -right-2 -top-10 size-36 rounded-full border border-white/10" aria-hidden="true" />
+        <div className="relative flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-white/70">Pemasukan hari ini</p>
+            <p className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{formatIDR(stats.todayRevenue)}</p>
+            <p className="mt-2 flex items-center gap-2 text-xs text-white/70">
+              <Receipt className="size-3.5" />
               {stats.todayTransactions} transaksi tercatat
-            </div>
+            </p>
           </div>
+          <Link href="/dashboard/laporan" className="flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-semibold text-white transition-colors hover:bg-white/15">
+            Lihat laporan
+            <ArrowRight className="size-4" />
+          </Link>
         </div>
       </section>
 
@@ -188,14 +190,7 @@ export default async function DashboardPage() {
           </div>
           <p className="text-xs text-muted-foreground">Angka diperbarui langsung</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard
-            title="Pemasukan hari ini"
-            value={formatIDR(stats.todayRevenue)}
-            subtitle={`${stats.todayTransactions} transaksi`}
-            icon={<TrendingUp className="size-5" />}
-            variant="success"
-          />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <KpiCard
             title="Pengeluaran hari ini"
             value={formatIDR(stats.todayExpenses)}

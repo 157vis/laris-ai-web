@@ -37,12 +37,11 @@ export function KpiCard({
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
 
   return (
-    <Card className="group relative overflow-hidden rounded-2xl border-border/70 shadow-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <span className={cn("absolute inset-x-0 top-0 h-1 opacity-80", style.bar)} aria-hidden="true" />
-      <CardContent className="p-4 pt-5 sm:p-5 sm:pt-6">
-        <div className="flex items-center justify-between gap-3">
-          <p className="truncate text-xs font-semibold text-muted-foreground sm:text-sm">{title}</p>
-          <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", style.bg, style.text)}>
+    <Card className="group rounded-2xl border-border/70 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="min-w-0 truncate pt-1 text-xs font-semibold text-muted-foreground sm:text-sm">{title}</p>
+          <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-black/[0.03]", style.bg, style.text)}>
             {icon}
           </span>
         </div>
