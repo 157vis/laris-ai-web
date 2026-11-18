@@ -7,9 +7,11 @@ import {
   Map,
   ArrowRight,
   Activity,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { KpiCard } from "@/components/dashboard/kpi-card";
 import { getCurrentAdminProfile, getAdminStats } from "@/lib/admin/rbac";
 import { AccessDenied } from "@/components/admin/access-denied";
 import { createClient } from "@/lib/supabase/server";
@@ -69,77 +71,51 @@ export default async function AdminConsolePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-2xl bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 p-6 text-white shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
-            <Shield className="h-6 w-6" />
-          </div>
+      <section className="relative isolate overflow-hidden rounded-[1.75rem] bg-brand-900 p-6 text-white shadow-lg shadow-brand-900/10 sm:p-8">
+        <div className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full border border-white/10" aria-hidden="true" />
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm text-white/80">Selamat datang, Super Admin</p>
-            <p className="text-2xl font-bold">{adminProfile.fullName}</p>
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+              <Shield className="size-4" />
+              Ruang administrator
+            </div>
+            <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+              Selamat datang, {adminProfile.fullName}
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/75">
+              Pantau pengguna, data usaha, dan operasional platform dari satu tempat.
+            </p>
+          </div>
+          <div className="flex items-start gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-xs text-white/80">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span>Aksi admin tercatat di audit log.</span>
           </div>
         </div>
-        <p className="mt-3 text-sm text-white/70">
-          ⚠️ Halaman ini hanya untuk admin. Semua aksi tercatat di audit log.
-        </p>
-      </div>
+      </section>
 
-      {/* Quick stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Total User</p>
-              <p className="text-2xl font-bold">{stats.totalUsers}</p>
-            </div>
-            <Users className="h-8 w-8 text-blue-500" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Total Toko</p>
-              <p className="text-2xl font-bold">{stats.totalClients}</p>
-            </div>
-            <Database className="h-8 w-8 text-emerald-500" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Total Produk</p>
-              <p className="text-2xl font-bold">{stats.totalProducts}</p>
-            </div>
-            <Activity className="h-8 w-8 text-amber-500" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Total Transaksi</p>
-              <p className="text-2xl font-bold">{stats.totalTransactions}</p>
-            </div>
-            <Activity className="h-8 w-8 text-rose-500" />
-          </CardContent>
-        </Card>
-      </div>
+      <section aria-label="Statistik platform" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard title="Total pengguna" value={String(stats.totalUsers)} icon={<Users className="size-5" />} variant="info" />
+        <KpiCard title="Total toko" value={String(stats.totalClients)} icon={<Database className="size-5" />} variant="success" />
+        <KpiCard title="Total produk" value={String(stats.totalProducts)} icon={<Activity className="size-5" />} variant="warning" />
+        <KpiCard title="Total transaksi" value={String(stats.totalTransactions)} icon={<Activity className="size-5" />} variant="default" />
+      </section>
 
       {/* User role breakdown */}
       {Object.keys(stats.usersByRole).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>📊 User by Role</CardTitle>
+        <Card className="rounded-2xl border-border/70 shadow-none">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="size-4 text-brand-700 dark:text-brand-300" />
+              Pengguna berdasarkan peran
+            </CardTitle>
+            <CardDescription>Komposisi akun di seluruh platform</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {Object.entries(stats.usersByRole).map(([role, count]) => (
-                <div
-                  key={role}
-                  className="rounded-lg border bg-muted/30 p-3"
-                >
-                  <p className="text-xs text-muted-foreground">{role}</p>
-                  <p className="text-2xl font-bold">{count}</p>
+                <div key={role} className="rounded-xl border border-border/60 bg-muted/25 p-4">
+                  <p className="text-xs font-medium capitalize text-muted-foreground">{role.replace(/_/g, " ")}</p>
+                  <p className="mt-2 text-2xl font-bold tracking-tight">{count}</p>
                 </div>
               ))}
             </div>
@@ -147,32 +123,29 @@ export default async function AdminConsolePage() {
         </Card>
       )}
 
-      {/* Admin tools */}
       <div>
-        <h2 className="text-lg font-semibold">🛠️ Admin Tools</h2>
-        <p className="text-sm text-muted-foreground">
-          Aksi sensitif — tercatat di audit log
-        </p>
+        <h2 className="text-lg font-bold tracking-tight">Peralatan admin</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Kelola platform dengan aktivitas yang tercatat.</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {adminCards.map((card) => {
           const Icon = card.icon;
           return (
-            <Card key={card.href} className="overflow-hidden">
-              <div className={`h-1 bg-gradient-to-r ${card.color}`} />
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Icon className="h-5 w-5" />
-                  {card.title}
-                </CardTitle>
+            <Card key={card.href} className="overflow-hidden rounded-2xl border-border/70 shadow-none transition-shadow hover:shadow-md">
+              <div className={`h-1 bg-gradient-to-r ${card.color}`} aria-hidden="true" />
+              <CardHeader className="pb-4">
+                <span className="flex size-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300">
+                  <Icon className="size-5" />
+                </span>
+                <CardTitle className="pt-2 text-base">{card.title}</CardTitle>
                 <CardDescription>{card.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="mb-3 text-sm font-semibold">{card.count}</p>
-                <Button asChild variant="outline" className="w-full">
+                <p className="mb-3 text-sm font-semibold text-muted-foreground">{card.count}</p>
+                <Button asChild variant="outline" className="w-full rounded-xl">
                   <Link href={card.href}>
-                    Buka
-                    <ArrowRight className="h-4 w-4" />
+                    Buka pengelolaan
+                    <ArrowRight data-icon="inline-end" />
                   </Link>
                 </Button>
               </CardContent>

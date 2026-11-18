@@ -17,18 +17,18 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // Brand emerald (UMKM/Cuan)
+        // Forest green and soft sage tones for the Laris.AI brand.
         brand: {
-          50: "#ecfdf5",
-          100: "#d1fae5",
-          200: "#a7f3d0",
-          300: "#6ee7b7",
-          400: "#34d399",
-          500: "#10b981", // primary
-          600: "#059669",
-          700: "#047857",
-          800: "#065f46",
-          900: "#064e3b",
+          50: "#f2f6ef",
+          100: "#e3eddf",
+          200: "#cadcc3",
+          300: "#a9c69f",
+          400: "#81aa7c",
+          500: "#578b61",
+          600: "#3f754e",
+          700: "#315e40",
+          800: "#284b35",
+          900: "#203d2c",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

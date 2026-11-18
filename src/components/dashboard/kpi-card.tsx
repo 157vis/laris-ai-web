@@ -4,27 +4,12 @@ import { cn } from "@/lib/utils";
 
 type Variant = "default" | "success" | "warning" | "danger" | "info";
 
-const VARIANT_STYLES: Record<Variant, { bg: string; text: string }> = {
-  default: {
-    bg: "bg-muted",
-    text: "text-muted-foreground",
-  },
-  success: {
-    bg: "bg-emerald-100 dark:bg-emerald-950/40",
-    text: "text-emerald-700 dark:text-emerald-300",
-  },
-  warning: {
-    bg: "bg-amber-100 dark:bg-amber-950/40",
-    text: "text-amber-700 dark:text-amber-300",
-  },
-  danger: {
-    bg: "bg-rose-100 dark:bg-rose-950/40",
-    text: "text-rose-700 dark:text-rose-300",
-  },
-  info: {
-    bg: "bg-sky-100 dark:bg-sky-950/40",
-    text: "text-sky-700 dark:text-sky-300",
-  },
+const VARIANT_STYLES: Record<Variant, { bg: string; text: string; bar: string }> = {
+  default: { bg: "bg-muted", text: "text-muted-foreground", bar: "bg-border" },
+  success: { bg: "bg-brand-100 dark:bg-brand-900/40", text: "text-brand-700 dark:text-brand-300", bar: "bg-brand-500" },
+  warning: { bg: "bg-amber-100 dark:bg-amber-950/40", text: "text-amber-700 dark:text-amber-300", bar: "bg-amber-500" },
+  danger: { bg: "bg-rose-100 dark:bg-rose-950/40", text: "text-rose-700 dark:text-rose-300", bar: "bg-rose-500" },
+  info: { bg: "bg-sky-100 dark:bg-sky-950/40", text: "text-sky-700 dark:text-sky-300", bar: "bg-sky-500" },
 };
 
 type Trend = "up" | "down" | "flat" | undefined;
@@ -39,9 +24,6 @@ type KpiCardProps = {
   trendValue?: string;
 };
 
-/**
- * KPI Card — Kartu metrik untuk dashboard.
- */
 export function KpiCard({
   title,
   value,
@@ -51,38 +33,33 @@ export function KpiCard({
   trend,
   trendValue,
 }: KpiCardProps) {
-  const v = VARIANT_STYLES[variant];
-  const trendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
-  const TrendIcon = trendIcon;
+  const style = VARIANT_STYLES[variant];
+  const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
 
   return (
-    <Card>
-      <CardContent className="flex items-start justify-between gap-3 p-4 sm:p-6">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-medium text-muted-foreground sm:text-sm">
-            {title}
+    <Card className="group rounded-2xl border-border/70 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="min-w-0 truncate pt-1 text-xs font-semibold text-muted-foreground sm:text-sm">{title}</p>
+          <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-black/[0.03]", style.bg, style.text)}>
+            {icon}
+          </span>
+        </div>
+        <p className="mt-4 truncate text-2xl font-bold tracking-tight text-foreground sm:text-[1.75rem]">{value}</p>
+        {subtitle && <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{subtitle}</p>}
+        {trend && trendValue && (
+          <p
+            className={cn(
+              "mt-3 flex items-center gap-1.5 text-xs font-semibold",
+              trend === "up" && "text-brand-700 dark:text-brand-300",
+              trend === "down" && "text-rose-600 dark:text-rose-400",
+              trend === "flat" && "text-muted-foreground"
+            )}
+          >
+            <TrendIcon className="size-3.5" />
+            {trendValue}
           </p>
-          <p className="mt-1 truncate text-xl font-bold sm:text-2xl">{value}</p>
-          {subtitle && (
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
-          )}
-          {trend && trendValue && (
-            <p
-              className={cn(
-                "mt-1 flex items-center gap-1 text-xs font-medium",
-                trend === "up" && "text-emerald-600",
-                trend === "down" && "text-rose-600",
-                trend === "flat" && "text-muted-foreground"
-              )}
-            >
-              <TrendIcon className="h-3 w-3" />
-              {trendValue}
-            </p>
-          )}
-        </div>
-        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", v.bg, v.text)}>
-          {icon}
-        </div>
+        )}
       </CardContent>
     </Card>
   );

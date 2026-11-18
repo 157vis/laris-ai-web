@@ -22,30 +22,29 @@ export function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-svh bg-muted/30">
-      {/* Sidebar: tampil di desktop, tersembunyi di mobile (jadi drawer) */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r bg-background lg:block">
+    <div className="min-h-svh bg-background">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-border/70 bg-card lg:block">
         <Sidebar role={user.role} />
       </aside>
 
-      {/* Mobile sidebar drawer */}
       <MobileSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         role={user.role}
       />
 
-      {/* Header (top bar) */}
-      <Header user={user} onMenuClick={() => setSidebarOpen(true)} />
+      <Header
+        user={user}
+        onMenuClick={() => setSidebarOpen(true)}
+        sidebarOpen={sidebarOpen}
+      />
 
-      {/* Main content: offset untuk sidebar desktop & bottom-nav mobile */}
       <main className="lg:pl-64">
-        <div className="mx-auto max-w-7xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10">
+        <div className="mx-auto max-w-[1480px] px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-10 lg:pt-7">
           {children}
         </div>
       </main>
 
-      {/* Bottom nav: tampil di mobile & tablet, hidden di desktop */}
       <BottomNav role={user.role} />
     </div>
   );
